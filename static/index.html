@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Streaming Radio</title>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="socket.io-stream.js"></script>
+    <script>
+        var socket = io();
+        var streamingSocket = ss(socket);
+        //var stream = ss.createStream();
+
+        var bufferLoader;
+        var context;
+
+        var playDelay = 0;
+        var bufferCount = 0, playedCount = 0;
+
+        function startRadio() {
+
+            window.AudioContext = window.AudioContext || window.webkitAudioContext;
+            context = new AudioContext();
+
+
+            var decodeAudioSuccessCallback = function (buffer) {
+                var source = context.createBufferSource();
+
+                bufferCount++;
+
+                console.log("Scheduling buffer " + bufferCount + " to play in " + playDelay + " seconds.");
+
+                source.buffer = buffer;
+                source.connect(context.destination);
+                source.start(playDelay);
+
+                playDelay += buffer.duration;
+
+                source.addEventListener("ended", function() {
+                    console.log("Done playing buffer " + playedCount + ".");
+                    playedCount++;
+                });
+
+            };
+
+            var decodeAudioErrorCallback = function (e) {
+                console.log("Error with decoding audio data, e: " + e);
+            }
+
+            /**
+             * stream - IOStream
+             * musicInfo - Object {}
+             */
+            streamingSocket.on('music-stream', function(stream, musicInfo) {
+
+                console.log("Streaming '" + musicInfo.title + "' by '" + musicInfo.artist + "'.");
+
+                document.getElementById("title").innerHTML = musicInfo.title;
+                document.getElementById("artist").innerHTML = musicInfo.artist;
+                document.getElementById("album").innerHTML = musicInfo.album;
+                document.getElementById("lyrics").innerHTML = musicInfo.lyrics;
+                document.getElementById("cover").src = musicInfo.coverUrl;
+
+                // data - Uint8Array
+                stream.on('data', function (data) {
+
+                    // arg 1 must be an 'ArrayBuffer'
+                    context.decodeAudioData(data.buffer, decodeAudioSuccessCallback, decodeAudioErrorCallback);
+                });
+            });
+
+
+            /*
+            // Use we if we don't use the streaming module
+            socket.on('data', function (data) {
+
+                // arg 1 must be an 'ArrayBuffer'
+                context.decodeAudioData(data, decodeAudioSuccessCallback, decodeAudioErrorCallback);
+            });
+            */
+        }
+
+        window.onload = startRadio;
+
+    </script>
+</head>
+
+<body>
+<h1>Welcome, listener!</h1>
+<img id="cover" src="placeholder.jpeg" />
+<br />
+<br />
+<div id="title">TITLE</div>
+<div id="album">
+    ALBUM
+</div>
+<div id="artist">ARTIST</div>
+<br>
+<h3>Lyrics</h3>
+<div id="lyrics">LYRICS</div>
+</body>
+</html>

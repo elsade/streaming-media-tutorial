@@ -1,0 +1,19 @@
+Check in the code into github.
+
+Stations
+    Directory - parse station
+    FS watch and update the station
+
+Create Room
+
+Flow control
+
+Chat
+    Add the chat form element
+    Persist the chat on the server
+        Persist the chat in Mongo
+
+Port the frontend to Angular
+Port the frontend to React
+
+Research rxjs
