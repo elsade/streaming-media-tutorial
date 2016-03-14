@@ -6,6 +6,7 @@ var parseString = require('xml2js').parseString;
 // http://api.chartlyrics.com/apiv1.asmx/SearchLyricDirect?artist=michael%20jackson&song=bad
 
 var lyrics = function() {
+    "use strict";
 
     var host = "http://api.chartlyrics.com";
 
@@ -27,6 +28,14 @@ var lyrics = function() {
                 if(apiResult.GetLyricResult.Lyric) {
                     results.lyrics = apiResult.GetLyricResult.Lyric[0].replace(/\r\n/g, '<br>');
                 }
+
+                if(apiResult.GetLyricResult.LyricArtist) {
+                    results.artist = apiResult.GetLyricResult.LyricArtist[0];
+                }
+
+                if(apiResult.GetLyricResult.LyricSong) {
+                    results.title = apiResult.GetLyricResult.LyricSong[0];
+                }
             }
 
             return results;
@@ -34,37 +43,43 @@ var lyrics = function() {
         get: function getLyrics(artist, title, callback) {
             var completePath;
             var lyricResults;
-            console.log("getLyrics() artist " + artist + " title " + title + ".");
 
-            var encodedArtist = encodeURI(artist);
-            var encodedTitle = encodeURI(title);
+            if(artist && title) {
+                console.log("getLyrics() artist " + artist + " title " + title + ".");
+                var encodedArtist = encodeURI(artist);
+                var encodedTitle = encodeURI(title);
 
-            completePath =  "/apiv1.asmx/SearchLyricDirect?artist=" + encodedArtist + "&song=" + encodedTitle;
+                completePath =  "/apiv1.asmx/SearchLyricDirect?artist=" + encodedArtist + "&song=" + encodedTitle;
 
-            console.log("lyrics get: complete path '" + completePath + "'.");
+                console.log("lyrics get: complete path '" + completePath + "'.");
 
-            module.client.get(completePath, function(err, req, res, data) {
+                module.client.get(completePath, function(err, req, res, data) {
 
-                if(err) {
-                    assert.ifError(err);
-                    return callback(err, {});
-                }
-
-                return parseString(data, function (err, result) {
                     if(err) {
                         assert.ifError(err);
                         return callback(err, {});
                     }
 
-                    //util.log(result);
+                    return parseString(data, function (err, result) {
+                        if(err) {
+                            assert.ifError(err);
+                            return callback(err, {});
+                        }
 
-                    lyricResults = module.createLyricResults(result);
+                        util.log(result);
 
-                    util.log(lyricResults);
+                        lyricResults = module.createLyricResults(result);
 
-                    return callback(null, lyricResults);
+                        util.log(lyricResults);
+
+                        return callback(null, lyricResults);
+                    });
                 });
-            });
+            }
+            else {
+                return callback(new Error("Invalid Artist or Title"), {});
+            }
+
         }
     };
 

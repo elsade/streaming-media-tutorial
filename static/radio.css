@@ -1,0 +1,55 @@
+.material-icons.md-24 { font-size: 24px; }
+.material-icons.md-48 { font-size: 48px; }
+
+ul {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    background-color: #f1f1f1;
+    width: 200px;
+    border: 1px solid #555;
+}
+
+li a.station-links{
+    text-align: center;
+    border-bottom: 1px solid #555;
+}
+
+li:last-child {
+    border-bottom: none;
+}
+
+li a {
+    display: block;
+    color: #000;
+    padding: 8px 16px;
+    text-decoration: none;
+}
+
+li a:hover:not(.active) {
+    background-color: #d1d1d1;
+    color: black;
+}
+
+li a.active {
+    text-align: left;
+    background-color: black;
+    color: white;
+}
+
+#chat-list {
+    width: 600px;
+}
+
+li #chat-element {
+    padding: 10px;
+    text-align: left;
+}
+
+.player-button {
+    color: black;
+}
+
+#chat-input {
+    width: 600px;
+}

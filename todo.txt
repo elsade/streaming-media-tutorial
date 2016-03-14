@@ -1,19 +1,21 @@
-Check in the code into github.
-
 Stations
-    Directory - parse station
-    FS watch and update the station
-
-Create Room
+    FS watch and update the station if the files change.
 
 Flow control
 
 Chat
-    Add the chat form element
-    Persist the chat on the server
-        Persist the chat in Mongo
+	Persist the chat on the server
+	Persist the chat in Mongo
 
 Port the frontend to Angular
 Port the frontend to React
+Port rxjs
 
-Research rxjs
+add progress timer
+
+Test baton promotion
+
+Changing stations
+    Clear chat
+    Pass the baton
+

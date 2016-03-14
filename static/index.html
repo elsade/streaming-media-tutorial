@@ -1,103 +1,81 @@
 <!DOCTYPE html>
 <html lang="en">
-
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<link href="radio.css" rel="stylesheet" type="text/css">
 <head>
     <meta charset="UTF-8">
     <title>Streaming Radio</title>
-
+    <script src="https://code.jquery.com/jquery-2.2.1.min.js"></script>
     <script src="/socket.io/socket.io.js"></script>
-    <script src="socket.io-stream.js"></script>
-    <script>
-        var socket = io();
-        var streamingSocket = ss(socket);
-        //var stream = ss.createStream();
-
-        var bufferLoader;
-        var context;
-
-        var playDelay = 0;
-        var bufferCount = 0, playedCount = 0;
-
-        function startRadio() {
-
-            window.AudioContext = window.AudioContext || window.webkitAudioContext;
-            context = new AudioContext();
-
-
-            var decodeAudioSuccessCallback = function (buffer) {
-                var source = context.createBufferSource();
-
-                bufferCount++;
-
-                console.log("Scheduling buffer " + bufferCount + " to play in " + playDelay + " seconds.");
-
-                source.buffer = buffer;
-                source.connect(context.destination);
-                source.start(playDelay);
-
-                playDelay += buffer.duration;
-
-                source.addEventListener("ended", function() {
-                    console.log("Done playing buffer " + playedCount + ".");
-                    playedCount++;
-                });
-
-            };
-
-            var decodeAudioErrorCallback = function (e) {
-                console.log("Error with decoding audio data, e: " + e);
-            }
-
-            /**
-             * stream - IOStream
-             * musicInfo - Object {}
-             */
-            streamingSocket.on('music-stream', function(stream, musicInfo) {
-
-                console.log("Streaming '" + musicInfo.title + "' by '" + musicInfo.artist + "'.");
-
-                document.getElementById("title").innerHTML = musicInfo.title;
-                document.getElementById("artist").innerHTML = musicInfo.artist;
-                document.getElementById("album").innerHTML = musicInfo.album;
-                document.getElementById("lyrics").innerHTML = musicInfo.lyrics;
-                document.getElementById("cover").src = musicInfo.coverUrl;
-
-                // data - Uint8Array
-                stream.on('data', function (data) {
-
-                    // arg 1 must be an 'ArrayBuffer'
-                    context.decodeAudioData(data.buffer, decodeAudioSuccessCallback, decodeAudioErrorCallback);
-                });
-            });
-
-
-            /*
-            // Use we if we don't use the streaming module
-            socket.on('data', function (data) {
-
-                // arg 1 must be an 'ArrayBuffer'
-                context.decodeAudioData(data, decodeAudioSuccessCallback, decodeAudioErrorCallback);
-            });
-            */
-        }
-
-        window.onload = startRadio;
-
-    </script>
+    <script src="main.js"></script>
 </head>
 
 <body>
-<h1>Welcome, listener!</h1>
-<img id="cover" src="placeholder.jpeg" />
-<br />
-<br />
-<div id="title">TITLE</div>
-<div id="album">
-    ALBUM
+
+<h1 id="welcome">Welcome, listener!</h1>
+
+<div id="login">
+    <h1>Please enter your name: </h1>
+    <form class="login-form" onsubmit="return login.submit()">
+        <input id="username" type="text" maxlength="20"/>
+    </form>
 </div>
-<div id="artist">ARTIST</div>
-<br>
-<h3>Lyrics</h3>
-<div id="lyrics">LYRICS</div>
+
+<div id="music-block">
+    <div id="station-block">
+        <ul id="station-list">
+            <li><a href="#list-header" class="active"><i class="material-icons md-48">library_music</i></a></li>
+        </ul>
+    </div>
+
+    <div id="player">
+        <img id="cover" src="placeholder.jpeg"/>
+
+        <div id="song-info">
+            <div id="title"></div>
+            <div id="artist"></div>
+            <div id="album"></div>
+        </div>
+
+        <div id="player-controls">
+            <a href="#" class="player-button" id="play-pause"><i class="material-icons md-48" id="play-pause-icon">pause</i></a>
+            <a href="#" class="player-button" id="mute-unmute"><i class="material-icons md-48" id="mute-unmute-icon">volume_off</i></a>
+            <a href="#" class="player-button" id="stop"><i class="material-icons md-48" id="stop-icon">stop</i></a>
+            <a href="#" class="player-button" id="next"><i class="material-icons md-48" id="next-icon">skip_next</i></a>
+            <br>
+            <div>
+                <i class="material-icons md-24">volume_down</i>
+                <input id="volume" min="0" max="1" step=".01" type="range"/>
+                <i class="material-icons md-24">volume_up</i>
+            </div>
+            <br>
+            <div>
+                <i class="material-icons md-24">fast_rewind</i>
+                <input id="progress" min="0" max="1" step=".01" type="range"/>
+                <i class="material-icons md-24">fast_forward</i>
+            </div>
+
+        </div>
+        <br/>
+    </div>
+</div>
+
+<div id="lyrics_block">
+    <h3>Lyrics</h3>
+    <div id="lyrics">LYRICS</div>
+</div>
+
+<div id="chat-block">
+    <div id="chat-area">
+        <ul id="chat-list">
+            <li><a class="active" href="#"><i class="material-icons md-48">chat</i></a></li>
+        </ul>
+    </div>
+    <br>
+    <form id="chat-form">
+        <input id="chat-input" placeholder="Type here to chat...">
+    </form>
+</div>
+
 </body>
 </html>
