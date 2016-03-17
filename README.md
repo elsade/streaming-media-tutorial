@@ -14,16 +14,16 @@ Installation/run instructions:
 
 TODO:
 
-Use REST APIs instead of socket messaging for the login and station retrieval.
+1) Use REST APIs instead of socket messaging for the login and station retrieval.
 
-Launch each station as a separate process to improve scaling using the cluster module.
+2) Launch each station as a separate process to improve scaling using the cluster module.
 
-Switch the client to a modern framework.
+3) Switch the client to a modern framework.
 
 
 Known Issues:
 
-Sometimes duplicate client events are fired.
+1) Sometimes duplicate client events are fired.
 
-The progress report baton is not passed correctly if someone leaves a station.
+2) The progress report baton is not passed correctly if someone leaves a station.
 
