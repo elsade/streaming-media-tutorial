@@ -4,76 +4,85 @@ var fs = require("fs");
 
 var express = require('express');
 var app = express();
+var bodyParser = require('body-parser');
+
 var server = require('http').createServer(app);
 var io = require('socket.io')(server);
 var port = process.env.PORT || 3000;
 
 var staticRoot = "./static";
 
-var id3 = require('./id3').id3Tags(staticRoot);
-var coverArt = require('cover-art');
 var stations = require("./station").stations(staticRoot);
 var userStore = require("./userStore").userStore();
+var mediaUtils = require("./mediaUtils").mediaUtils(staticRoot);
 
 app.use(express.static('static'));
 app.use(express.static('js'));
 
+app.use(bodyParser.urlencoded({extended: true}));
+app.use(bodyParser.json());
+
+var router = express.Router();
+
+router.use(function(req, res, next) {
+    "use strict";
+    next();
+});
+
+router.get('/', function (req, res) {
+    "use strict";
+    res.json({Error: "Usage: GET /stations"});
+});
+
+router.route('/stations').get( function (req, res) {
+    "use strict";
+    res.json({
+        stationList: stations.stationsList
+    });
+});
+
+router.route('/stations/:name')
+    .get( function (req, res) {
+        "use strict";
+        var stationName = req.params.name;
+
+        if(stationName) {
+            console.log("GET " + req.originalUrl);
+            var selectedStation = stations.getStationByName(req.params.name);
+            res.json({
+                selectedStation
+            });
+        }
+        else {
+            res.status(500).send(new Error("Invalid station name."));
+        }
+});
+
+app.use('/api', router);
+
 var sockets = {};
 
-// populate the stations and their song lists
+// populate the stations and their media lists
 stations.create();
 
 var stationUtils = (function () {
     "use strict";
 
     var module = {
-        getSongMetaData: (filePath, callback) => {
-            var songMetaData = {
-                path: filePath
-            };
+        sendPlay: (socket, station, mediaFilePath, startTime) => {
 
-            id3.getTag(filePath, (err, tags) => {
+            // fetch all information we can get about this file
+            mediaUtils.getMetaData( mediaFilePath, (err, metaData) => {
 
-                if(err) {
-                    return callback(err, songMetaData);
-                }
+                metaData.startTime = startTime;
 
-                songMetaData.title = tags.title;
-                songMetaData.artist = tags.artist;
-                songMetaData.album = tags.album;
+                util.log("<---out--- 'play' " + util.inspect(metaData));
 
-                if(songMetaData.artist && songMetaData.album) {
-                    return coverArt(songMetaData.artist.trim(), songMetaData.album.trim(), "large", (err, url)=> {
-                        if(err) {
-                            console.log("cover art error: " + util.inspect(err));
-                            return callback(null, songMetaData);
-                        }
+                // send the play command back to the originator
+                socket.emit("play", metaData);
 
-                        songMetaData.coverUrl = url;
-
-                        return callback(null, songMetaData);
-                    });
-                }
-
-                return callback(null, songMetaData);
-            });
-        },
-        getStation: (stationName) => {
-            return stations.stationsList.find( (station) => station.name === stationName);
-        },
-        playSong: (socket, station, songPath, startTime) => {
-            util.log(id3);
-
-            module.getSongMetaData( songPath, (err, songMetaData) => {
-
-                songMetaData.startTime = startTime;
-
-                util.log(songMetaData);
-
-                util.log("<---out--- 'playSong' " + util.inspect(songMetaData));
-                socket.emit("playSong", songMetaData);
-
-                socket.broadcast.to(station.name).emit("playSong", songMetaData);
+                // broadcast the play to the rest of the room
+                socket.broadcast.to(station.name).emit("play", metaData);
             });
         },
         leaveStation: (socket) => {
@@ -157,40 +166,39 @@ io.on('connection', (socket) => {
 
     socket.on("playStation", (playInfo) => {
         util.log("---in---> 'playStation' " + util.inspect(playInfo));
-        var songPath;
-        var selectedStation = stationUtils.getStation(playInfo.name);
+        var filePath;
+        var selectedStation = stations.getStationByName(playInfo.name);
         assert(selectedStation);
 
         stations.play(selectedStation);
         assert(selectedStation.playing);
 
-        songPath = selectedStation.playing.path;
+        filePath = selectedStation.playing.path;
 
         stationUtils.joinStation(socket, selectedStation);
-
-        stationUtils.playSong(socket, selectedStation, songPath, selectedStation.currentTime);
+        stationUtils.sendPlay(socket, selectedStation, filePath, selectedStation.currentTime);
     });
 
-    socket.on("nextSong", (nextSongInfo) => {
-        util.log("---in---> 'nextSong' " + util.inspect(nextSongInfo));
-        var songPath;
+    socket.on("next", (nextInfo) => {
+        util.log("---in---> 'next' " + util.inspect(nextInfo));
+        var filePath;
 
-        var selectedStation = stationUtils.getStation(nextSongInfo.name);
+        var selectedStation = stations.getStationByName(nextInfo.name);
         assert(selectedStation);
 
         stations.next(selectedStation);
         assert(selectedStation.playing);
 
-        songPath = selectedStation.playing.path;
+        filePath = selectedStation.playing.path;
         assert(selectedStation.playing);
-        stationUtils.playSong(socket, selectedStation, songPath, 0);
+        stationUtils.sendPlay(socket, selectedStation, filePath, 0);
     });
 
     socket.on("reportProgress", (progressInfo) => {
         //console.log("reportProgress " + progressInfo.progress);
 
         if(socket.activeStationName) {
-            var selectedStation = stationUtils.getStation(socket.activeStationName);
+            var selectedStation = stations.getStationByName(socket.activeStationName);
             assert(selectedStation);
 
             stations.updateTime(selectedStation, progressInfo.progress);
@@ -199,7 +207,7 @@ io.on('connection', (socket) => {
 
     socket.on("changeProgress", (progressInfo) => {
         if(socket.activeStationName) {
-            var selectedStation = stationUtils.getStation(socket.activeStationName);
+            var selectedStation = stations.getStationByName(socket.activeStationName);
             assert(selectedStation);
 
             stations.updateTime(selectedStation, progressInfo.progress);
@@ -208,12 +216,12 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on("playerCommand", (commandInfo) => {
-        console.log("playerCommand " + commandInfo);
+    socket.on("command", (commandInfo) => {
+        console.log("command " + commandInfo);
 
         assert(socket.activeStationName);
         if(socket.activeStationName) {
-            //var selectedStation = stationUtils.getStation(socket.activeStationName);
+            //var selectedStation = stationUtils.getStationByName(socket.activeStationName);
             socket.broadcast.to(socket.activeStationName).emit("notifyCommand", commandInfo);
         }
     });
@@ -235,7 +243,7 @@ io.on('connection', (socket) => {
         console.log('connection dropped');
 
         if(socket.activeStationName) {
-            var selectedStation = stationUtils.getStation(socket.activeStationName);
+            var selectedStation = stations.getStationByName(socket.activeStationName);
             assert(selectedStation);
 
             // leave the station
@@ -255,8 +263,10 @@ server.listen(port, () => {
     console.log('listening on *:' + port);
 });
 
+/*
 process.on('uncaughtException', (err) => {
     "use strict";
     // handle the error safely
     console.log("Uncaught exception, err: " + util.inspect(err));
 });
+*/

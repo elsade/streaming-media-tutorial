@@ -1,7 +1,7 @@
 var util = require("util");
 var id3 = require('id3js');
 
-var id3Tags = function(root) {
+var id3Tags = function() {
     "use strict";
     var module = {
         read: function readIdTag(filename, callback) {
@@ -21,7 +21,7 @@ var id3Tags = function(root) {
                 return callback( null, tags);
             });
         },
-        getTag: function getTag(filename, callback) {
+        getTag: function getTag(root, filename, callback) {
 
             var fullPath = root + filename;
 
@@ -31,8 +31,6 @@ var id3Tags = function(root) {
                 if (err) {
                     return callback(err, null);
                 }
-
-
 
                 // trim trailing null characters
                 return callback(null, {
@@ -48,16 +46,3 @@ var id3Tags = function(root) {
 };
 
 module.exports.id3Tags = id3Tags;
-
-/*
-
-var id3Module = id3Tags();
-
-
-id3Module.getTag("./static/indie-rock.mp3", function(err, tag) {
-    if(err){
-        util.log(err);
-    }
-    util.log(tag);
-});
-*/

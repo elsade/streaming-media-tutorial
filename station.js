@@ -58,7 +58,8 @@ var stations = function(root) {
             files.map((song) => {
                 songs.unshift({
                     name: song,
-                    path: stationRoot + "/" + stationName + "/" + song
+                    path: stationRoot + "/" + stationName + "/" + song,
+                    src: "/" + stationName + "/" + song,
                 });
             });
 
@@ -130,7 +131,11 @@ var stations = function(root) {
         getBatonHolder: (station) => {
             assert(station);
             return station.batonHolder;
-        }
+        },
+        getStationByName: (stationName) => {
+            return module.stationsList.find( (station) => station.name === stationName);
+        },
+
     };
 
     return module;

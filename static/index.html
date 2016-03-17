@@ -21,60 +21,61 @@
     </form>
 </div>
 
-<div id="music-block">
-    <div id="station-block">
-        <ul id="station-list">
-            <li><a href="#list-header" class="active"><i class="material-icons md-48">library_music</i></a></li>
-        </ul>
-    </div>
-
-    <div id="player">
-        <img id="cover" src="placeholder.jpeg"/>
-
-        <div id="song-info">
-            <div id="title"></div>
-            <div id="artist"></div>
-            <div id="album"></div>
+<div>
+    <div class="x" id="music-block">
+        <div class="top-block" id="station-block">
+            <ul id="station-list">
+                <li><a href="#list-header" class="active"><i class="material-icons md-48">library_music</i></a></li>
+            </ul>
         </div>
 
-        <div id="player-controls">
-            <a href="#" class="player-button" id="play-pause"><i class="material-icons md-48" id="play-pause-icon">pause</i></a>
-            <a href="#" class="player-button" id="mute-unmute"><i class="material-icons md-48" id="mute-unmute-icon">volume_off</i></a>
-            <a href="#" class="player-button" id="stop"><i class="material-icons md-48" id="stop-icon">stop</i></a>
-            <a href="#" class="player-button" id="next"><i class="material-icons md-48" id="next-icon">skip_next</i></a>
-            <br>
-            <div>
-                <i class="material-icons md-24">volume_down</i>
-                <input id="volume" min="0" max="1" step=".01" type="range"/>
-                <i class="material-icons md-24">volume_up</i>
-            </div>
-            <br>
-            <div>
-                <i class="material-icons md-24">fast_rewind</i>
-                <input id="progress" min="0" max="1" step=".01" type="range"/>
-                <i class="material-icons md-24">fast_forward</i>
+        <div class="top-block" id="player">
+            <img id="cover" src="placeholder.jpeg"/>
+            <video id="video" width="320" height="240" src=""></video>
+            <div id="song-info">
+                <div id="title"></div>
+                <div id="artist"></div>
+                <div id="album"></div>
             </div>
 
+            <div id="player-controls">
+                <a href="#" class="player-button" id="play-pause"><i class="material-icons md-48" id="play-pause-icon">pause</i></a>
+                <a href="#" class="player-button" id="mute-unmute"><i class="material-icons md-48" id="mute-unmute-icon">volume_off</i></a>
+                <a href="#" class="player-button" id="stop"><i class="material-icons md-48" id="stop-icon">stop</i></a>
+                <a href="#" class="player-button" id="next"><i class="material-icons md-48" id="next-icon">skip_next</i></a>
+                <br>
+                <div>
+                    <i class="material-icons md-24">volume_down</i>
+                    <input id="volume" min="0" max="1" step=".01" type="range"/>
+                    <i class="material-icons md-24">volume_up</i>
+                </div>
+                <br>
+                <div>
+                    <i class="material-icons md-24">fast_rewind</i>
+                    <input id="progress" min="0" max="1" step=".01" type="range"/>
+                    <i class="material-icons md-24">fast_forward</i>
+                </div>
+
+            </div>
         </div>
-        <br/>
     </div>
-</div>
 
-<div id="lyrics_block">
-    <h3>Lyrics</h3>
-    <div id="lyrics">LYRICS</div>
-</div>
-
-<div id="chat-block">
-    <div id="chat-area">
-        <ul id="chat-list">
-            <li><a class="active" href="#"><i class="material-icons md-48">chat</i></a></li>
-        </ul>
+    <div class="x" id="lyrics_block">
+        <h3>Lyrics</h3>
+        <div id="lyrics">LYRICS</div>
     </div>
-    <br>
-    <form id="chat-form">
-        <input id="chat-input" placeholder="Type here to chat...">
-    </form>
+
+    <div class="x" id="chat-block">
+        <div id="chat-area">
+            <ul id="chat-list">
+                <li><a class="active" href="#"><i class="material-icons md-48">chat</i></a></li>
+            </ul>
+        </div>
+        <br>
+        <form id="chat-form">
+            <input id="chat-input" placeholder="Type here to chat...">
+        </form>
+    </div>
 </div>
 
 </body>

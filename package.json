@@ -17,6 +17,10 @@
     "xml2js": "^0.4.16"
   },
   "devDependencies": {
-    "nodeunit": "^0.9.1"
+    "body-parser": "^1.15.0",
+    "file-type": "^3.8.0",
+    "jsmediatags": "^3.0.5",
+    "nodeunit": "^0.9.1",
+    "read-chunk": "^1.0.1"
   }
 }

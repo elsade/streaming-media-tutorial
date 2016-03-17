@@ -38,7 +38,7 @@ li a.active {
 }
 
 #chat-list {
-    width: 600px;
+    width: 768px;
 }
 
 li #chat-element {
@@ -50,6 +50,16 @@ li #chat-element {
     color: black;
 }
 
+.top-block {
+    display: inline-block;
+    margin: 10px;
+    border: 3px solid black;
+}
+
+.chat-block {
+    border: 3px solid black;
+}
+
 #chat-input {
-    width: 600px;
+    width: 768px;
 }

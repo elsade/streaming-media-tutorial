@@ -1,5 +1,9 @@
 var util = require("util");
 
+/**
+ * This module stores user lo
+ *
+ */
 var userStore = () => {
     "use strict";
     //noinspection JSUnusedGlobalSymbols,JSUnusedGlobalSymbols,JSUnusedGlobalSymbols

@@ -2,7 +2,7 @@
 var socket = io(); // jshint ignore:line
 
 var startTime = 0, username, currentStationName;
-var audio;
+var audio, video, media, mediaType;
 
 /**
  * Handle user login
@@ -22,6 +22,12 @@ var login = (function () {
                 $("#login-form").submit( function (event) {
                     event.preventDefault();
                     return loginModule.submit(event);
+                });
+
+                $.ajax({
+                    url: "http://127.0.0.1:3000/api/stations"
+                }).then(function (data) {
+                    console.log(data);
                 });
             });
         },
@@ -101,10 +107,14 @@ var player = (function () {
     "use strict";
 
     var playerModule = {
+        inited: false,
         baton: false,
         progressDrag: false,
         init: function () {
-            playerModule.addPlayerEventHandlers();
+            // we only want to register the player event handler once
+            if(!playerModule.inited) {
+                playerModule.addPlayerEventHandlers();
+            }
         },
         show: function () {
             $("#player").show();
@@ -115,9 +125,9 @@ var player = (function () {
             $("#lyrics_block").hide();
         },
         timeUpdate: function () {
-            var currentProgress = audio.currentTime/audio.duration;
-            //console.log("timeUpdate audio.currentTime " + audio.currentTime);
-            //console.log("timeUpdate audio.duration " + audio.duration);
+            var currentProgress = media.currentTime/media.duration;
+            //console.log("timeUpdate media.currentTime " + media.currentTime);
+            //console.log("timeUpdate media.duration " + media.duration);
             var progress = $("#progress");
             if(!playerModule.progressDrag) {
                 progress.val(currentProgress);
@@ -142,8 +152,8 @@ var player = (function () {
             socket.emit("changeProgress", progressInfo);
         },
         overrideProgress: function (newValue) {
-            //console.log("Setting audio.currentTime to " + newValue);
-            audio.currentTime = audio.duration * newValue;
+            //console.log("Setting media.currentTime to " + newValue);
+            media.currentTime = media.duration * newValue;
         },
         onProgressNotification: function (newValue) {
             playerModule.setProgressBar(newValue);
@@ -154,18 +164,18 @@ var player = (function () {
             var currentProgress = progress.val();
             if(playerModule.progressDrag) {
 
-                if(Number.isFinite(audio.duration)) {
+                if(Number.isFinite(media.duration)) {
 
                     playerModule.overrideProgress(currentProgress);
 
-                    //audio.currentTime = audio.duration * currentProgress;
+                    //media.currentTime = media.duration * currentProgress;
 
                     playerModule.changeProgressOnServer({
                         progress: currentProgress
                     });
                 }
                 else {
-                    console.log("changeProgress: error, the current duration is " + audio.duration );
+                    console.log("changeProgress: error, the current duration is " + media.duration );
                 }
             }
         },
@@ -197,47 +207,49 @@ var player = (function () {
             });
         },
         addButtonEventHandlers: function () {
-            $("#play-pause").click(function () {
+            $("#play-pause").off('click').on('click', function () {
                 playerModule.togglePlayPause();
 
-                var command = (audio.paused)? "pause":"play";
-                playerModule.sendCommandToServer(command, audio.paused);
+                var command = (media.paused)? "pause":"play";
+                playerModule.sendCommandToServer(command, media.paused);
             });
 
-            $("#mute-unmute").click(function () {
+            $("#mute-unmute").off('click').on('click', function () {
                 playerModule.toggleMuteUnmute();
             });
 
-            $("#stop").click(function () {
+            $("#stop").off('click').on('click', function () {
                 playerModule.commandStop();
                 playerModule.sendCommandToServer("stop", false);
             });
 
-            $("#next").click(function () {
+            $("#next").off('click').on('click', function () {
                 playerModule.nextButtonClick();
             });
         },
         commandStop: function () {
-            audio.pause();
+            media.pause();
             $("#play-pause-icon").text("play_arrow");
         },
-        nextSong: function () {
-            socket.emit("nextSong", { name: currentStationName});
+        next: function () {
+            console.log("Sending next to server.");
+            socket.emit("next", { name: currentStationName});
         },
         nextButtonClick: function () {
-            playerModule.nextSong();
+            console.log("nextButtonClick");
+            playerModule.next();
         },
         sendCommandToServer: function (command, playing) {
-            socket.emit("playerCommand", {
+            socket.emit("command", {
                 command: command,
                 playing: playing
             });
         },
         commandPlay: function () {
             var pausePlay = $("#play-pause-icon");
-            if(audio) {
-                if(audio.paused) {
-                    audio.play();
+            if(media) {
+                if(media.paused) {
+                    media.play();
                     pausePlay.text("pause");
                 }
             }
@@ -245,9 +257,9 @@ var player = (function () {
         commandPause: function () {
             var pausePlay = $("#play-pause-icon");
 
-            if(audio) {
-                if(!audio.paused) {
-                    audio.pause();
+            if(media) {
+                if(!media.paused) {
+                    media.pause();
                     pausePlay.text("play_arrow");
                 }
             }
@@ -255,13 +267,13 @@ var player = (function () {
         togglePlayPause: function togglePlayPause() {
             var pausePlay = $("#play-pause-icon");
 
-            if(audio) {
-                if(audio.paused) {
-                    audio.play();
+            if(media) {
+                if(media.paused) {
+                    media.play();
                     pausePlay.text("pause");
                 }
                 else {
-                    audio.pause();
+                    media.pause();
                     pausePlay.text("play_arrow");
                 }
             }
@@ -269,15 +281,15 @@ var player = (function () {
         toggleMuteUnmute: function toggleMuteUnmute() {
             var muteUnmute = $("#mute-unmute-icon");
 
-            if(audio) {
-                if(audio.muted) {
+            if(media) {
+                if(media.muted) {
                     muteUnmute.text("volume_off");
                 }
                 else {
                     muteUnmute.text("volume_up");
                 }
 
-                audio.muted = !audio.muted;
+                media.muted = !media.muted;
             }
         },
         addPlayerEventHandlers: function () {
@@ -293,11 +305,185 @@ var player = (function () {
             // use either the provided value or get it from the UI
             newVolume = value || volume.val();
 
-            audio.volume = newVolume;
+            if(media) {
+                media.volume = newVolume;
+            }
 
             if(value) {
                 volume.val(newVolume);
             }
+        },
+        getMediaTypeFromExt: function (mediaInfo) {
+            var mediaType = "audio";
+
+            switch(mediaInfo.ext) {
+                case "mp4":
+                case "mov":
+                    mediaType = "video";
+                    break;
+                case "mp3":
+                    mediaType = "audio";
+                    break;
+                default:
+                    console.log("getMediaTypeFromExt(), error, unknown ext ", mediaInfo);
+                    break;
+            }
+
+            return mediaType;
+        },
+        showAudio: function () {
+            console.log("show audio");
+            $("#cover").show();
+        },
+        showVideo: function () {
+            console.log("show video");
+            $("#video").show();
+        },
+        hideAudio: function () {
+            console.log("hide audio");
+            $("#cover").hide();
+        },
+        hideVideo: function () {
+            console.log("hide video");
+            $("#video").hide();
+        },
+        playVideo: function (mediaInfo) {
+
+            if(audio && !audio.paused) {
+                audio.pause();
+            }
+
+            player.hideAudio();
+
+            if(video) {
+                video.pause();
+
+                video.src = mediaInfo.src;
+                video.load();
+
+                player.showVideo();
+            }
+            else {
+                initializeVideoPlayer(mediaInfo.src);
+
+                player.showVideo();
+            }
+
+            media = (mediaType === "video")?video:audio;
+
+            var $title = $("#title");
+            if(mediaInfo.title) {
+                $title.html("Title: " + mediaInfo.title);
+                $title.show();
+            }
+            else {
+                $title.hide();
+            }
+
+            var $album = $("#album");
+            if(mediaInfo.album) {
+                $album.html("Album: " + mediaInfo.album);
+                $album.show();
+            }
+            else {
+                $album.hide();
+            }
+
+            var $artist = $("#artist");
+            if(mediaInfo.artist) {
+                $artist.html("Artist/Band: " + mediaInfo.artist);
+                $artist.show();
+            }
+            else {
+                $artist.hide();
+            }
+
+            if(mediaInfo.lyrics) {
+                $("#lyrics_block").show();
+                $("#lyrics").html(mediaInfo.lyrics);
+            }
+            else {
+                $("#lyrics_block").hide();
+            }
+
+            if(mediaInfo.coverUrl) {
+                $("#cover").attr("src", mediaInfo.coverUrl);
+            }
+            else {
+                $("#cover").attr("src", "placeholder.jpeg");
+            }
+
+            media.play();
+
+            startTime = mediaInfo.startTime;
+        },
+
+        playAudio: function (mediaInfo) {
+
+            if(video && !video.paused) {
+                video.pause();
+            }
+
+            player.hideVideo();
+
+            if(audio) {
+                audio.pause();
+
+                audio.src = mediaInfo.src;
+                audio.load();
+            }
+            else {
+                initializeAudioPlayer(mediaInfo.src);
+                media = (mediaType === "video")?video:audio;
+            }
+
+            player.showAudio();
+
+            var $title = $("#title");
+            if(mediaInfo.title) {
+                $title.html("Title: " + mediaInfo.title);
+                $title.show();
+            }
+            else {
+                $title.hide();
+            }
+
+            var $album = $("#album");
+            if(mediaInfo.album) {
+                $album.html("Album: " + mediaInfo.album);
+                $album.show();
+            }
+            else {
+                $album.hide();
+            }
+
+            var $artist = $("#artist");
+            if(mediaInfo.artist) {
+                $artist.html("Artist/Band: " + mediaInfo.artist);
+                $artist.show();
+            }
+            else {
+                $artist.hide();
+            }
+
+            if(mediaInfo.lyrics) {
+                $("#lyrics_block").show();
+                $("#lyrics").html(mediaInfo.lyrics);
+            }
+            else {
+                $("#lyrics_block").hide();
+            }
+
+            if(mediaInfo.coverUrl) {
+                $("#cover").attr("src", mediaInfo.coverUrl);
+            }
+            else {
+                $("#cover").attr("src", "placeholder.jpeg");
+            }
+
+            media.play();
+
+            startTime = mediaInfo.startTime;
         }
     };
 
@@ -404,72 +590,37 @@ var registerSocketEventHandlers = (function() {
         }
     });
 
-    socket.on('playSong', function (songInfo) {
-        if(audio) {
-            audio.src = songInfo.path;
-            audio.load();
+    socket.on('play', function (mediaInfo) {
+
+        console.log("---> play ", mediaInfo);
+
+        if(mediaInfo.mime !== "unknown") {
+            mediaType = mediaInfo.mime.match(/video/)?"video":"audio";
         }
         else {
-            initializeAudioPlayer(songInfo.path);
-            audio.src = songInfo.path;
+            mediaType = player.getMediaTypeFromExt(mediaInfo.src);
         }
 
-        var $title = $("#title");
-        if(songInfo.title) {
-            $title.html("Song: " + songInfo.title);
-            $title.show();
+        if(mediaType === "video") {
+            player.playVideo(mediaInfo);
+            media = video;
         }
         else {
-            $title.hide();
+            player.playAudio(mediaInfo);
+            media = audio;
         }
-
-
-        var $album = $("#album");
-        if(songInfo.album) {
-            $album.html("Album: " + songInfo.album);
-            $album.show();
-        }
-        else {
-            $album.hide();
-        }
-
-        var $artist = $("#artist");
-        if(songInfo.artist) {
-            $artist.html("Artist/Band: " + songInfo.artist);
-            $artist.show();
-        }
-        else {
-            $artist.hide();
-        }
-
-        if(songInfo.lyrics) {
-            $("#lyrics_block").show();
-            $("#lyrics").html(songInfo.lyrics);
-        }
-        else {
-            $("#lyrics_block").hide();
-        }
-
-        if(songInfo.coverUrl) {
-            $("#cover").attr("src", songInfo.coverUrl);
-        }
-        else {
-            $("#cover").attr("src", "placeholder.jpeg");
-        }
-
-        audio.play();
-
-        startTime = songInfo.startTime;
     });
 }());
 
 /**
  * Create and begin the actual audio playback
  */
-function initializeAudioPlayer() {
+function initializeAudioPlayer(src) {
     "use strict";
     audio = new Audio();
     audio.loop = false;
+
+    audio.src = src;
 
     player.init();
 
@@ -478,7 +629,8 @@ function initializeAudioPlayer() {
     chat.init();
 
     audio.addEventListener("ended", function () {
-        player.nextSong();
+        console.log("Audio ended.");
+        player.next();
     });
 
     audio.addEventListener("timeupdate", function () {
@@ -499,5 +651,47 @@ function initializeAudioPlayer() {
 
     player.show();
 }
+
+
+/**
+ * Create and begin the actual audio playback
+ */
+function initializeVideoPlayer(src) {
+    "use strict";
+    video = document.getElementById("video");
+    video.loop = false;
+
+    video.src = src;
+
+    player.init();
+
+    player.setVolume(0.8);
+
+    chat.init();
+
+    video.addEventListener("ended", function () {
+        console.log("video ended.");
+        player.next();
+    });
+
+    video.addEventListener("timeupdate", function () {
+        player.timeUpdate();
+    });
+
+    video.addEventListener("canplay", function () {
+        if(startTime > 0) {
+            player.overrideProgress(startTime);
+            startTime = 0;
+        }
+    });
+
+    video.addEventListener("error", function () {
+        var err = audio.error;
+        console.log("An error occurred during audio playback. err " + err);
+    });
+
+    player.show();
+}
+
 
 window.onload = login.load();

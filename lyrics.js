@@ -87,13 +87,3 @@ var lyrics = function() {
 };
 
 module.exports.lyrics = lyrics;
-
-/*
-
-var testLyricModule = lyrics();
-
-testLyricModule.get("michael jackson", "bad", function (err, results) {
-    util.log(results);
-});
-
-*/
