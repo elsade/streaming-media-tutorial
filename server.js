@@ -24,6 +24,8 @@ app.use(bodyParser.json());
 
 var router = express.Router();
 
+// TODO-AG: use the APIs below for station retrieval instead of a socket message.
+
 router.use(function(req, res, next) {
     "use strict";
     next();
@@ -217,7 +219,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on("command", (commandInfo) => {
-        console.log("command " + commandInfo);
+        util.log("command " + commandInfo);
 
         assert(socket.activeStationName);
         if(socket.activeStationName) {
