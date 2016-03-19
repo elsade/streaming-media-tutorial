@@ -23,7 +23,5 @@ TODO:
 
 Known Issues:
 
-1) Sometimes duplicate client events are fired.
-
-2) The progress report baton is not passed correctly if someone leaves a station.
+1) The progress report baton is not passed correctly if someone leaves a station.
 

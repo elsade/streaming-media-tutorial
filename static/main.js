@@ -1,19 +1,20 @@
 
 var socket = io(); // jshint ignore:line
 
-var startTime = 0, username, currentStationName;
-var audio, video, media, mediaType;
+var username, currentStationName;
+var mediaType;
+//var audio;
 
 /**
  * Handle user login
  */
 var login = (function () {
     "use strict";
-    var loginModule = {
+    var context = {
         load: function () {
             // the hide/show methods don't work until the DOM has been populated
             $(document).ready( function () {
-                loginModule.show();
+                context.show();
 
                 stationsMenu.hide();
                 player.hide();
@@ -21,7 +22,7 @@ var login = (function () {
 
                 $("#login-form").submit( function (event) {
                     event.preventDefault();
-                    return loginModule.submit(event);
+                    return context.submit(event);
                 });
 
                 $.ajax({
@@ -56,7 +57,7 @@ var login = (function () {
         }
     };
 
-    return loginModule;
+    return context;
 }());
 
 /**
@@ -65,7 +66,7 @@ var login = (function () {
 var stationsMenu = (function () {
     "use strict";
 
-    var stationMenuModule = {
+    var context = {
         show: function () {
             $("#station-block").show();
         },
@@ -81,7 +82,7 @@ var stationsMenu = (function () {
                 listElement.val(station.name);
                 listElement.html(station.name);
                 listElement.click(function () {
-                    stationMenuModule.onStationClick(station.name);
+                    context.onStationClick(station.name);
                 });
             });
         },
@@ -97,7 +98,7 @@ var stationsMenu = (function () {
             chat.addNotification("You have joined the '" + stationName + "' channel.");
         }
     };
-    return stationMenuModule;
+    return context;
 }());
 
 /**
@@ -106,14 +107,18 @@ var stationsMenu = (function () {
 var player = (function () {
     "use strict";
 
-    var playerModule = {
+    var context = {
+        mediaInterface: null,
         inited: false,
         baton: false,
         progressDrag: false,
-        init: function () {
+        init: function (mediaInterface, src) {
+            context.mediaInterface = mediaInterface;
+            context.mediaInterface.init(src);
+
             // we only want to register the player event handler once
-            if(!playerModule.inited) {
-                playerModule.addPlayerEventHandlers();
+            if(!context.inited) {
+                context.addPlayerEventHandlers();
             }
         },
         show: function () {
@@ -125,16 +130,14 @@ var player = (function () {
             $("#lyrics_block").hide();
         },
         timeUpdate: function () {
-            var currentProgress = media.currentTime/media.duration;
-            //console.log("timeUpdate media.currentTime " + media.currentTime);
-            //console.log("timeUpdate media.duration " + media.duration);
+            var currentProgress = context.mediaInterface.getCurrentTime()/context.mediaInterface.getDuration();
             var progress = $("#progress");
-            if(!playerModule.progressDrag) {
+            if(!context.progressDrag) {
                 progress.val(currentProgress);
 
                 // report the progress if we have the baton
-                if(playerModule.baton) {
-                    playerModule.reportProgressToServer({
+                if(context.baton) {
+                    context.reportProgressToServer({
                         progress: currentProgress
                     });
                 }
@@ -153,29 +156,30 @@ var player = (function () {
         },
         overrideProgress: function (newValue) {
             //console.log("Setting media.currentTime to " + newValue);
-            media.currentTime = media.duration * newValue;
+            var duration = context.mediaInterface.getDuration();
+            context.mediaInterface.setCurrentTime(duration * newValue);
         },
         onProgressNotification: function (newValue) {
-            playerModule.setProgressBar(newValue);
-            playerModule.overrideProgress(newValue);
+            context.setProgressBar(newValue);
+            context.overrideProgress(newValue);
         },
         changeProgress: function (event) {
             var progress = $("#progress");
             var currentProgress = progress.val();
-            if(playerModule.progressDrag) {
+            if(context.progressDrag) {
 
-                if(Number.isFinite(media.duration)) {
+                if(Number.isFinite(context.mediaInterface.getDuration())) {
 
-                    playerModule.overrideProgress(currentProgress);
+                    context.overrideProgress(currentProgress);
 
                     //media.currentTime = media.duration * currentProgress;
 
-                    playerModule.changeProgressOnServer({
+                    context.changeProgressOnServer({
                         progress: currentProgress
                     });
                 }
                 else {
-                    console.log("changeProgress: error, the current duration is " + media.duration );
+                    console.log("changeProgress: error, the current duration is " + context.mediaInterface.getDuration() );
                 }
             }
         },
@@ -183,52 +187,54 @@ var player = (function () {
             var progress = $("#progress");
 
             progress.click(function (event) {
-                playerModule.progressDrag = true;
-                playerModule.changeProgress(event);
-                playerModule.progressDrag = false;
+                context.progressDrag = true;
+                context.changeProgress(event);
+                context.progressDrag = false;
             });
 
             progress.mousedown(function (event) {
-                playerModule.progressDrag = true;
-                playerModule.changeProgress(event);
+                context.progressDrag = true;
+                context.changeProgress(event);
             });
 
             progress.mousemove(function (event) {
-                playerModule.changeProgress(event);
+                context.changeProgress(event);
             });
 
             progress.mouseup(function (event) {
-                playerModule.progressDrag = false;
+                context.progressDrag = false;
             });
         },
         addVolumeEventHandlers: function () {
             $("#volume").change(function () {
-                playerModule.setVolume();
+                context.setVolume();
             });
         },
         addButtonEventHandlers: function () {
             $("#play-pause").off('click').on('click', function () {
-                playerModule.togglePlayPause();
+                context.togglePlayPause();
 
-                var command = (media.paused)? "pause":"play";
-                playerModule.sendCommandToServer(command, media.paused);
+                var paused = context.mediaInterface.isPaused();
+
+                var command = (paused)? "pause":"play";
+                context.sendCommandToServer(command, paused);
             });
 
             $("#mute-unmute").off('click').on('click', function () {
-                playerModule.toggleMuteUnmute();
+                context.toggleMuteUnmute();
             });
 
             $("#stop").off('click').on('click', function () {
-                playerModule.commandStop();
-                playerModule.sendCommandToServer("stop", false);
+                context.commandStop();
+                context.sendCommandToServer("stop", false);
             });
 
             $("#next").off('click').on('click', function () {
-                playerModule.nextButtonClick();
+                context.nextButtonClick();
             });
         },
         commandStop: function () {
-            media.pause();
+            context.mediaInterface.pause();
             $("#play-pause-icon").text("play_arrow");
         },
         next: function () {
@@ -237,7 +243,7 @@ var player = (function () {
         },
         nextButtonClick: function () {
             console.log("nextButtonClick");
-            playerModule.next();
+            context.next();
         },
         sendCommandToServer: function (command, playing) {
             socket.emit("command", {
@@ -247,67 +253,61 @@ var player = (function () {
         },
         commandPlay: function () {
             var pausePlay = $("#play-pause-icon");
-            if(media) {
-                if(media.paused) {
-                    media.play();
-                    pausePlay.text("pause");
-                }
-            }
+
+            context.mediaInterface.play();
+            pausePlay.text("pause");
         },
         commandPause: function () {
             var pausePlay = $("#play-pause-icon");
 
-            if(media) {
-                if(!media.paused) {
-                    media.pause();
-                    pausePlay.text("play_arrow");
-                }
-            }
+            context.mediaInterface.pause();
+            pausePlay.text("play_arrow");
         },
-        togglePlayPause: function togglePlayPause() {
+        setPauseIcon: function () {
+            var iconText = "play_arrow";
             var pausePlay = $("#play-pause-icon");
 
-            if(media) {
-                if(media.paused) {
-                    media.play();
-                    pausePlay.text("pause");
-                }
-                else {
-                    media.pause();
-                    pausePlay.text("play_arrow");
-                }
+            if(context.mediaInterface.isPaused()) {
+                iconText = "pause";
             }
+
+            pausePlay.text(iconText);
+        },
+        togglePlayPause: function togglePlayPause() {
+
+            if(context.mediaInterface.isPaused()) {
+                context.mediaInterface.play();
+            }
+            else {
+                context.mediaInterface.pause();
+            }
+
+            context.setPauseIcon();
+        },
+        setMuteUnmuteIcon: function () {
+            $("#mute-unmute-icon").text(context.mediaInterface.isMuted()?"volume_off":"volume_up");
         },
         toggleMuteUnmute: function toggleMuteUnmute() {
-            var muteUnmute = $("#mute-unmute-icon");
-
-            if(media) {
-                if(media.muted) {
-                    muteUnmute.text("volume_off");
-                }
-                else {
-                    muteUnmute.text("volume_up");
-                }
-
-                media.muted = !media.muted;
+            var muted = context.mediaInterface.isMuted();
+            if(muted) {
+                context.mediaInterface.unmute();
             }
+            else {
+                context.mediaInterface.mute();
+            }
+
+            context.setMuteUnmuteIcon();
         },
         addPlayerEventHandlers: function () {
-            playerModule.addButtonEventHandlers();
-            playerModule.addProgressEventHandlers();
-            playerModule.addVolumeEventHandlers();
+            context.addButtonEventHandlers();
+            context.addProgressEventHandlers();
+            context.addVolumeEventHandlers();
         },
         setVolume: function (value) {
-            var newVolume;
-
             var volume = $("#volume");
+            var newVolume = value || volume.val(); // use either the provided value or get it from the UI
 
-            // use either the provided value or get it from the UI
-            newVolume = value || volume.val();
-
-            if(media) {
-                media.volume = newVolume;
-            }
+            context.mediaInterface.setVolume(newVolume);
 
             if(value) {
                 volume.val(newVolume);
@@ -349,27 +349,15 @@ var player = (function () {
         },
         playVideo: function (mediaInfo) {
 
-            if(audio && !audio.paused) {
-                audio.pause();
+            if(context.mediaInterface) {
+                context.mediaInterface.stop();
             }
 
             player.hideAudio();
 
-            if(video) {
-                video.pause();
+            initializePlayer(mediaInfo.src, "video");
 
-                video.src = mediaInfo.src;
-                video.load();
-
-                player.showVideo();
-            }
-            else {
-                initializeVideoPlayer(mediaInfo.src);
-
-                player.showVideo();
-            }
-
-            media = (mediaType === "video")?video:audio;
+            player.showVideo();
 
             var $title = $("#title");
             if(mediaInfo.title) {
@@ -413,29 +401,19 @@ var player = (function () {
                 $("#cover").attr("src", "placeholder.jpeg");
             }
 
-            media.play();
-
-            startTime = mediaInfo.startTime;
+            context.mediaInterface.play();
+            context.mediaInterface.setStartTime(mediaInfo.startTime);
         },
 
         playAudio: function (mediaInfo) {
 
-            if(video && !video.paused) {
-                video.pause();
+            if(context.mediaInterface) {
+                context.mediaInterface.stop();
             }
 
             player.hideVideo();
 
-            if(audio) {
-                audio.pause();
-
-                audio.src = mediaInfo.src;
-                audio.load();
-            }
-            else {
-                initializeAudioPlayer(mediaInfo.src);
-                media = (mediaType === "video")?video:audio;
-            }
+            initializePlayer(mediaInfo.src, "audio");
 
             player.showAudio();
 
@@ -481,13 +459,12 @@ var player = (function () {
                 $("#cover").attr("src", "placeholder.jpeg");
             }
 
-            media.play();
-
-            startTime = mediaInfo.startTime;
+            context.mediaInterface.play();
+            context.mediaInterface.setStartTime(mediaInfo.startTime);
         }
     };
 
-    return playerModule;
+    return context;
 }());
 
 /**
@@ -496,15 +473,15 @@ var player = (function () {
 var chat = (function () {
     "use strict";
 
-    var chatModule = {
+    var context = {
         init: function () {
             $("#chat-form").submit( function (event) {
-                return chatModule.chatFormSubmit(event);
+                return context.chatFormSubmit(event);
             });
         },
         chatFormSubmit: function (event) {
-            var chatMessage = chatModule.getChatInput();
-            chatModule.sendChat(chatMessage);
+            var chatMessage = context.getChatInput();
+            context.sendChat(chatMessage);
 
             return false;   // prevent the form from submitting
         },
@@ -523,10 +500,10 @@ var chat = (function () {
         },
         addNotification: function (message) {
             //console.log("chat adding notification: " + message);
-            chatModule.appendToChat(message);
+            context.appendToChat(message);
         },
         sendChat: function (message) {
-            chatModule.addNotification("You: " + message);
+            context.addNotification("You: " + message);
 
             // send the message to the room
             socket.emit("sendChat", {
@@ -535,14 +512,14 @@ var chat = (function () {
                 msg: message
             });
 
-            chatModule.clearChatInput();
+            context.clearChatInput();
         },
         getChatInput: function () {
             return $("#chat-input").val();
         }
     };
 
-    return chatModule;
+    return context;
 
 }());
 
@@ -601,97 +578,226 @@ var registerSocketEventHandlers = (function() {
             mediaType = player.getMediaTypeFromExt(mediaInfo.src);
         }
 
-        if(mediaType === "video") {
+        if(mediaType === "audio") {
+            player.playAudio(mediaInfo);
+        }
+        else if(mediaType === "video") {
             player.playVideo(mediaInfo);
-            media = video;
         }
         else {
-            player.playAudio(mediaInfo);
-            media = audio;
+            console.log("Error, unhandled mimetype, mediaInfo ", mediaInfo);
         }
     });
 }());
 
 /**
- * Create and begin the actual audio playback
+ * Create and begin the actual playback
  */
-function initializeAudioPlayer(src) {
+function initializePlayer(src, type) {
     "use strict";
-    audio = new Audio();
-    audio.loop = false;
 
-    audio.src = src;
-
-    player.init();
+    if(type === "audio") {
+        player.init(audioInterface, src);
+    }
+    else if(type === "video") {
+        player.init(videoInterface, src);
+    }
 
     player.setVolume(0.8);
-
     chat.init();
-
-    audio.addEventListener("ended", function () {
-        console.log("Audio ended.");
-        player.next();
-    });
-
-    audio.addEventListener("timeupdate", function () {
-        player.timeUpdate();
-    });
-
-    audio.addEventListener("canplay", function () {
-        if(startTime > 0) {
-            player.overrideProgress(startTime);
-            startTime = 0;
-        }
-    });
-
-    audio.addEventListener("error", function () {
-        var err = audio.error;
-        console.log("An error occurred during audio playback. err " + err);
-    });
-
     player.show();
 }
 
-
-/**
- * Create and begin the actual audio playback
- */
-function initializeVideoPlayer(src) {
+var audioInterface = (function AudioInterface() {
     "use strict";
-    video = document.getElementById("video");
-    video.loop = false;
+    var context = {
+        audio: null,
+        startTime: 0,
+        inited: false,
+        init: function (src) {
 
-    video.src = src;
+            if(!context.inited) {
+                context.audio = new Audio();
+                context.audio.loop = false;
 
-    player.init();
+                console.log("registering audio event handlers.");
 
-    player.setVolume(0.8);
+                context.audio.addEventListener("ended", function () {
+                    console.log("audio 'ended'");
+                    player.next();
+                });
 
-    chat.init();
+                context.audio.addEventListener("timeupdate", function () {
+                    player.timeUpdate();
+                });
 
-    video.addEventListener("ended", function () {
-        console.log("video ended.");
-        player.next();
-    });
+                context.audio.addEventListener("canplay", function () {
+                    console.log("audio 'canplay'");
+                    if(context.startTime > 0) {
+                        player.overrideProgress(context.startTime);
+                        context.startTime = 0;
+                    }
+                });
 
-    video.addEventListener("timeupdate", function () {
-        player.timeUpdate();
-    });
+                context.audio.addEventListener("error", function () {
+                    console.log("audio 'error'");
+                    var err = context.audio.error;
+                    console.log("An error occurred during audio playback. err " + err);
+                });
 
-    video.addEventListener("canplay", function () {
-        if(startTime > 0) {
-            player.overrideProgress(startTime);
-            startTime = 0;
+                context.inited = true;
+            }
+
+            context.audio.src = src;
+            context.load();
+        },
+        setStartTime: function (startTime) {
+            context.startTime = startTime;
+        },
+        play: function() {
+            context.audio.play();
+        },
+        stop: function () {
+            if(context.audio && context.audio.paused === false) {
+                context.pause();
+            }
+        },
+        pause: function () {
+            if(context.isPaused() === false) {
+                context.audio.pause();
+            }
+        },
+        isPaused: function () {
+            return context.audio.paused;
+        },
+        load: function () {
+            context.audio.load();
+        },
+        isMuted: function () {
+            return context.audio.muted;
+        },
+        mute: function () {
+            if(context.isMuted() === false) {
+                context.audio.mute = true;
+            }
+        },
+        unmute: function () {
+            if(context.isMuted()) {
+                context.audio.mute = false;
+            }
+        },
+        setVolume: function (newValue) {
+            context.audio.volume = newValue;
+        },
+        getDuration: function () {
+            return context.audio.duration;
+        },
+        getCurrentTime: function () {
+            return context.audio.currentTime;
+        },
+        setCurrentTime: function (newValue) {
+            context.audio.currentTime = newValue;
         }
-    });
+    };
 
-    video.addEventListener("error", function () {
-        var err = audio.error;
-        console.log("An error occurred during audio playback. err " + err);
-    });
+    return context;
+}());
 
-    player.show();
-}
+
+var videoInterface = (function AudioInterface() {
+    "use strict";
+    var context = {
+        video: null,
+        startTime: 0,
+        inited: false,
+        init: function (src) {
+
+            if(!context.inited) {
+                context.video = document.getElementById("video");
+                context.video.loop = false;
+
+                console.log("registering video event handlers.");
+
+                context.video.addEventListener("ended", function () {
+                    console.log("video 'ended'");
+                    player.next();
+                });
+
+                context.video.addEventListener("timeupdate", function () {
+                    player.timeUpdate();
+                });
+
+                context.video.addEventListener("canplay", function () {
+                    console.log("video 'canplay'");
+                    if(context.startTime > 0) {
+                        player.overrideProgress(context.startTime);
+                        context.startTime = 0;
+                    }
+                });
+
+                context.video.addEventListener("error", function () {
+                    console.log("video 'error'");
+                    var err = context.video.error;
+                    console.log("An error occurred during video playback. err " + err);
+                });
+
+                context.inited = true;
+            }
+
+            context.video.src = src;
+            context.load();
+        },
+        setStartTime: function (startTime) {
+            context.startTime = startTime;
+        },
+        play: function() {
+            context.video.play();
+        },
+        stop: function () {
+            if(context.video && context.video.paused === false) {
+                context.pause();
+            }
+        },
+        pause: function () {
+            if(context.isPaused() === false) {
+                context.video.pause();
+            }
+        },
+        isPaused: function () {
+            return context.video.paused;
+        },
+        load: function () {
+            context.video.load();
+        },
+        isMuted: function () {
+            return context.video.muted;
+        },
+        mute: function () {
+            if(context.isMuted() === false) {
+                context.video.mute = true;
+            }
+        },
+        unmute: function () {
+            if(context.isMuted()) {
+                context.video.mute = false;
+            }
+        },
+        setVolume: function (newValue) {
+            context.video.volume = newValue;
+        },
+        getDuration: function () {
+            return context.video.duration;
+        },
+        getCurrentTime: function () {
+            return context.video.currentTime;
+        },
+        setCurrentTime: function (newValue) {
+            context.video.currentTime = newValue;
+        }
+    };
+
+    return context;
+}());
 
 
 window.onload = login.load();
