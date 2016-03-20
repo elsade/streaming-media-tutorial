@@ -55,7 +55,11 @@ var stations = function(root) {
         fs.readdir(path, (err, files) => {
             assert.ifError(err);
 
-            files.map((song) => {
+            files.filter((filename) => {
+                // exclude 'hidden' files
+                return filename[0] !== ".";
+            })
+            .map((song) => {
                 songs.unshift({
                     name: song,
                     path: stationRoot + "/" + stationName + "/" + song,
@@ -75,7 +79,12 @@ var stations = function(root) {
             fs.readdir(fsRoot, (err, files) => {
                 assert.ifError(err);
 
-                files.sort().map((directoryName) => {
+                files.filter((directoryName) => {
+                        // exclude 'hidden' directories
+                    return directoryName[0] !== ".";
+                })
+                .sort()
+                .map((directoryName) => {
                     createStation(fsRoot + "/" + directoryName, directoryName, (err, station) => {
                         module.stationsList.push(station);
                     });
