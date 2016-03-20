@@ -59,7 +59,7 @@ var stations = function(root) {
                 songs.unshift({
                     name: song,
                     path: stationRoot + "/" + stationName + "/" + song,
-                    src: "/" + stationName + "/" + song,
+                    src: "/" + stationName + "/" + song
                 });
             });
 
@@ -134,8 +134,7 @@ var stations = function(root) {
         },
         getStationByName: (stationName) => {
             return module.stationsList.find( (station) => station.name === stationName);
-        },
-
+        }
     };
 
     return module;

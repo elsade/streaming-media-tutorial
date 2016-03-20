@@ -7,7 +7,7 @@ Installation/run instructions:
 
 2) Create one or more subdirectories in the static/stations folder.
 
-3) Add music to the these directories.
+3) Add mp3 or mp4 files to the these directories.
 
 4) Run using the command, 'node server.js'
 
@@ -18,10 +18,10 @@ TODO:
 
 2) Launch each station as a separate process to improve scaling using the cluster module.
 
-3) Switch the client to a modern framework.
-
 
 Known Issues:
 
 1) The progress report baton is not passed correctly if someone leaves a station.
+
+2) The chat does not scroll to the latest message. 
 

@@ -4,9 +4,11 @@ const mediaUtils = require("../mediaUtils").mediaUtils();
 
 module.exports = {
     setUp: function (callback) {
+        "use strict";
         callback();
     },
     tearDown: function (callback) {
+        "use strict";
         callback();
     },
     userStoreTests_imageTest: function(test) {
@@ -22,7 +24,7 @@ module.exports = {
         mediaUtils.determineFiletype(testFilePath, testMediaInfo, (err, mediaInfo, fileType) => {
 
             test.ok(mediaInfo.mime, "determineFiletype did not work. mimeType is null.");
-            test.ok(mediaUtils.isImage(mediaInfo.mime), "isImage did not work.")
+            test.ok(mediaUtils.isImage(mediaInfo.mime), "isImage did not work.");
 
             test.done();
         });
@@ -40,7 +42,7 @@ module.exports = {
         mediaUtils.determineFiletype(testFilePath, testMediaInfo, (err, mediaInfo, fileType) => {
 
             test.ok(mediaInfo.mime, "determineFiletype did not work. mimeType is null.");
-            test.ok(mediaUtils.isVideo(mediaInfo.mime), "isVideo did not work.")
+            test.ok(mediaUtils.isVideo(mediaInfo.mime), "isVideo did not work.");
 
             test.done();
         });
@@ -58,7 +60,7 @@ module.exports = {
         mediaUtils.determineFiletype(testFilePath, testMediaInfo, (err, mediaInfo, fileType) => {
 
             test.ok(mediaInfo.mime, "determineFiletype did not work. mimeType is null.");
-            test.ok(mediaUtils.isAudio(mediaInfo.mime), "isAudio did not work.")
+            test.ok(mediaUtils.isAudio(mediaInfo.mime), "isAudio did not work.");
 
             test.done();
         });
