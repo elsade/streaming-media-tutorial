@@ -1,82 +1,161 @@
 <!DOCTYPE html>
 <html lang="en">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-<link href="radio.css" rel="stylesheet" type="text/css">
 <head>
-    <meta charset="UTF-8">
-    <title>Streaming Radio</title>
-    <script src="https://code.jquery.com/jquery-2.2.1.min.js"></script>
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="main.js"></script>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="icon" href="../../favicon.ico">
+
+    <title>Streaming Media Tutorial</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="../../dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+    <link href="../../assets/css/ie10-viewport-bug-workaround.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="dashboard.css" rel="stylesheet">
+    <link href="login.css" rel="stylesheet" type="text/css">
+    <link href="main.css" rel="stylesheet" type="text/css">
+
+    <!-- Just for debugging purposes. Don't actually copy these 2 lines! -->
+    <!--[if lt IE 9]>
+    <script src="../../assets/js/ie8-responsive-file-warning.js"></script><![endif]-->
+    <script src="../../assets/js/ie-emulation-modes-warning.js"></script>
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+    <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+    <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
 </head>
 
 <body>
 
-<h1 id="welcome">Welcome, listener!</h1>
 
-<div id="login">
-    <h1>Please enter your name: </h1>
-    <form class="login-form" onsubmit="return login.submit()">
-        <input id="username" type="text" maxlength="20"/>
-    </form>
-</div>
-
-<div>
-    <div class="x" id="music-block">
-        <div class="top-block" id="station-block">
-            <ul id="station-list">
-                <li><a href="#list-header" class="active"><i class="material-icons md-48">library_music</i></a></li>
-            </ul>
-        </div>
-
-        <div class="top-block" id="player">
-            <img id="cover" src="placeholder.jpeg"/>
-            <video id="video" width="320" height="240" src=""></video>
-            <div id="song-info">
-                <div id="title"></div>
-                <div id="artist"></div>
-                <div id="album"></div>
-            </div>
-
-            <div id="player-controls">
-                <a href="#" class="player-button" id="play-pause"><i class="material-icons md-48" id="play-pause-icon">pause</i></a>
-                <a href="#" class="player-button" id="mute-unmute"><i class="material-icons md-48" id="mute-unmute-icon">volume_off</i></a>
-                <a href="#" class="player-button" id="stop"><i class="material-icons md-48" id="stop-icon">stop</i></a>
-                <a href="#" class="player-button" id="next"><i class="material-icons md-48" id="next-icon">skip_next</i></a>
-                <br>
-                <div>
-                    <i class="material-icons md-24">volume_down</i>
-                    <input id="volume" min="0" max="1" step=".01" type="range"/>
-                    <i class="material-icons md-24">volume_up</i>
+<div class="container" id="login">
+    <div class="row">
+        <div class="col-xl-8 col-sm-8 col-sm-offset-2 col-md-6 col-md-offset-3">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Welcome, please enter your name:</h3>
                 </div>
-                <br>
-                <div>
-                    <i class="material-icons md-24">fast_rewind</i>
-                    <input id="progress" min="0" max="1" step=".01" type="range"/>
-                    <i class="material-icons md-24">fast_forward</i>
+                <div class="panel-body">
+                    <form accept-charset="UTF-8" class="login-form" role="form" onsubmit="return login.submit()">
+                        <fieldset>
+                            <div class="form-group">
+                                <input class="form-control" id="username" placeholder="Name" name="username" type="text">
+                            </div>
+                            <input class="btn btn-lg btn-block" type="submit" value="Login">
+                        </fieldset>
+                    </form>
                 </div>
-
             </div>
         </div>
     </div>
+</div>
 
-    <div class="x" id="lyrics_block">
-        <h3>Lyrics</h3>
-        <div id="lyrics">LYRICS</div>
-    </div>
 
-    <div class="x" id="chat-block">
-        <div id="chat-area">
-            <ul id="chat-list">
-                <li><a class="active" href="#"><i class="material-icons md-48">chat</i></a></li>
+<div class="container-fluid" id="media-block">
+    <div class="row">
+
+        <div id="station-block" class="col-sm-2 col-md-2 col-lg-2 sidebar">
+            <h3>Stations</h3>
+            <ul id="station-list" class="nav nav-sidebar">
             </ul>
         </div>
-        <br>
-        <form id="chat-form">
-            <input id="chat-input" placeholder="Type here to chat...">
-        </form>
+
+        <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+            <h1 id="page-header">Please choose a station.</h1>
+
+            <div id="player" class="row placeholders">
+                <div class="col-xs-10 col-sm-8 placeholder">
+                    <img id="cover" width="400" height="400" class="img-responsive" src="placeholder.jpeg">
+                    <video id="video" width="320" height="240" src=""></video>
+                    <div id="song-info">
+                        <div id="title"></div>
+                        <div id="artist"></div>
+                        <div id="album"></div>
+                    </div>
+
+                    <div id="player-controls">
+                        <a href="#" class="player-button" id="play-pause"><i class="material-icons md-48" id="play-pause-icon">pause</i></a>
+                        <a href="#" class="player-button" id="mute-unmute"><i class="material-icons md-48" id="mute-unmute-icon">volume_off</i></a>
+                        <a href="#" class="player-button" id="stop"><i class="material-icons md-48" id="stop-icon">stop</i></a>
+                        <a href="#" class="player-button" id="next"><i class="material-icons md-48" id="next-icon">skip_next</i></a>
+                        <div>
+                            <i class="material-icons md-24">volume_down</i>
+                            <input class="slider" id="volume" min="0" max="1" step=".01" type="range"/>
+                            <i class="material-icons md-24">volume_up</i>
+                        </div>
+                        <br>
+                        <div>
+                            <i class="material-icons md-24">fast_rewind</i>
+                            <input class="slider" id="progress" min="0" max="1" step=".01" type="range"/>
+                            <i class="material-icons md-24">fast_forward</i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <h2 id="chat-header" class="sub-header">Chat</h2>
+            <div id="chat-block" class="container">
+                <div class="row">
+                    <div class="col-sm-10 col-md-10 col-lg-10">
+                        <div class="panel panel-primary">
+                            <div class="panel-heading" id="accordion">
+                                <i class="material-icons md-48">chat</i>
+                                <div class="btn-group pull-right">
+                                    <a type="button" class="btn btn-default btn-xs" data-toggle="collapse" data-parent="#accordion" href="#collapseOne">
+                                        <i class="material-icons md-36">expand_more</i>
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="panel-collapse" id="collapseOne">
+                                <div class="panel-body">
+                                    <ul id="chat-list" class="chat">
+                                        <li class="left clearfix">
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="panel-footer">
+                                    <div class="input-group">
+                                        <form id="chat-form">
+                                            <input id="btn-input" type="text" class="form-control input-sm" placeholder="Type your message here..."/>
+                                        </form>
+                                    <span class="input-group-btn">
+                                        <button class="btn btn-warning btn-sm" id="btn-chat">Send</button>
+                                    </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
+<!-- Bootstrap core JavaScript
+================================================== -->
+<!-- Placed at the end of the document so the pages load faster -->
+<!--<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script> -->
+<script>window.jQuery || document.write('<script src="../../assets/js/vendor/jquery.min.js"><\/script>')</script>
+
+<script src="https://code.jquery.com/jquery-2.2.1.min.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script src="main.js"></script>
+
+<script src="../../dist/js/bootstrap.min.js"></script>
+<!-- Just to make our placeholder images work. Don't actually copy the next line! -->
+<script src="../../assets/js/vendor/holder.min.js"></script>
+<!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+<script src="../../assets/js/ie10-viewport-bug-workaround.js"></script>
 </body>
 </html>

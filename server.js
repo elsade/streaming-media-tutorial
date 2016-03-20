@@ -19,6 +19,14 @@ var mediaUtils = require("./mediaUtils").mediaUtils(staticRoot);
 app.use(express.static('static'));
 app.use(express.static('js'));
 
+// for bootstrap
+app.use("/dist/css", express.static('dist/css'));
+app.use("/dist/fonts", express.static('dist/fonts'));
+app.use("/dist/js", express.static('dist/js'));
+
+app.use("/assets/js", express.static('assets/js'));
+app.use("/assets/css", express.static('assets/css'));
+
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(bodyParser.json());
 

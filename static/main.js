@@ -27,8 +27,8 @@ var login = (function () {
 
                 $.ajax({
                     url: "http://127.0.0.1:3000/api/stations"
-                }).then(function (data) {
-                    console.log(data);
+                }).then(function (stationList) {
+                    console.log(stationList);
                 });
             });
         },
@@ -47,7 +47,7 @@ var login = (function () {
                     username: username
                 });
 
-                $("#welcome").html(username + ", please choose a station:");
+                //$("#welcome").html(username + ", please choose a station:");
             }
             else {
                 $name.focus();
@@ -93,6 +93,8 @@ var stationsMenu = (function () {
                 name: stationName
             });
 
+            $("#page-header").hide();
+
             chat.show();
 
             chat.addNotification("You have joined the '" + stationName + "' channel.");
@@ -119,6 +121,7 @@ var player = (function () {
             // we only want to register the player event handler once
             if(!context.inited) {
                 context.addPlayerEventHandlers();
+                context.inited = true;
             }
         },
         show: function () {
@@ -267,7 +270,7 @@ var player = (function () {
             var iconText = "play_arrow";
             var pausePlay = $("#play-pause-icon");
 
-            if(context.mediaInterface.isPaused()) {
+            if(!context.mediaInterface.isPaused()) {
                 iconText = "pause";
             }
 
@@ -474,28 +477,44 @@ var chat = (function () {
     "use strict";
 
     var context = {
+        inited: false,
         init: function () {
-            $("#chat-form").submit( function (event) {
-                return context.chatFormSubmit(event);
-            });
+            if(!context.inited) {
+                $("#chat-form").submit( function (event) {
+                    console.log("Registering chat submit handler.");
+                    return context.chatFormSubmit(event);
+                });
+
+                $("#btn-chat").click( function (event) {
+                    return context.chatFormSubmit(event);
+                });
+
+                context.inited = true;
+            }
         },
         chatFormSubmit: function (event) {
             var chatMessage = context.getChatInput();
-            context.sendChat(chatMessage);
+
+            if(chatMessage) {
+                context.sendChat(chatMessage);
+            }
 
             return false;   // prevent the form from submitting
         },
         clearChatInput: function () {
-            return $("#chat-input").val("");
+            return $("#btn-input").val("");
         },
         show: function () {
+            $("#chat-header").show();
             $("#chat-block").show();
         },
         hide: function () {
+            $("#chat-header").hide();
             $("#chat-block").hide();
         },
         appendToChat: function (message) {
-            var chatListItemHTML = "<li class='chat-element'>" + message +"</li>";
+            var chatListItemHTML = "<li class='chat-element left clearfix'>" + message +"</li>";
+            //var chatListItemHTML = "<li class='chat-element'>" + message +"</li>";
             $("#chat-list").append(chatListItemHTML);
         },
         addNotification: function (message) {
@@ -515,7 +534,7 @@ var chat = (function () {
             context.clearChatInput();
         },
         getChatInput: function () {
-            return $("#chat-input").val();
+            return $("#btn-input").val();
         }
     };
 
@@ -534,6 +553,7 @@ var registerSocketEventHandlers = (function() {
 
         stationsMenu.populate(stations);
 
+        $("#media-block").show();
         $("#station-block").show();
     });
 
@@ -678,12 +698,12 @@ var audioInterface = (function AudioInterface() {
         },
         mute: function () {
             if(context.isMuted() === false) {
-                context.audio.mute = true;
+                context.audio.muted = true;
             }
         },
         unmute: function () {
             if(context.isMuted()) {
-                context.audio.mute = false;
+                context.audio.muted = false;
             }
         },
         setVolume: function (newValue) {
@@ -774,12 +794,12 @@ var videoInterface = (function AudioInterface() {
         },
         mute: function () {
             if(context.isMuted() === false) {
-                context.video.mute = true;
+                context.video.muted = true;
             }
         },
         unmute: function () {
             if(context.isMuted()) {
-                context.video.mute = false;
+                context.video.muted = false;
             }
         },
         setVolume: function (newValue) {
