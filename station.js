@@ -34,47 +34,44 @@ var stations = function(root) {
     "use strict";
 
     var staticRoot = root;
-    var stationRoot = "/stations";
+    const stationRoot = "/stations";
 
     // used on the server side
     var fsRoot = staticRoot + stationRoot;
 
-    function Station (name, songs) {
+    // pure
+    function Station (name, media) {
         return {
             name: name,
-            songs: songs,
+            media: media,
             currentTime: 0,
             playing: null,
             batonHolder: null
         };
     }
 
-    var createStation = (path, stationName, callback) => {
-        var songs = [];
-
-        fs.readdir(path, (err, files) => {
-            assert.ifError(err);
-
-            files.filter((filename) => {
+    // pure
+    var createStation = (files, stationName, callback) => {
+        let media = files.filter((filename) => {
                 // exclude 'hidden' files
                 return filename[0] !== ".";
             })
-            .map((song) => {
-                songs.unshift({
-                    name: song,
-                    path: stationRoot + "/" + stationName + "/" + song,
-                    src: "/" + stationName + "/" + song
-                });
+            .map((current) => {
+                return {
+                    name: current,
+                    path: stationRoot + "/" + stationName + "/" + current,
+                    src: "/" + stationName + "/" + current
+                };
             });
 
-            var newStation = Station(stationName, songs);
+        let newStation = Station(stationName, media);
 
-            callback(null, newStation);
-        });
+        return callback(null, newStation);
     };
 
     var module = {
         stationsList: [],
+        // impure
         create: () => {
             fs.readdir(fsRoot, (err, files) => {
                 assert.ifError(err);
@@ -85,15 +82,21 @@ var stations = function(root) {
                 })
                 .sort()
                 .map((directoryName) => {
-                    createStation(fsRoot + "/" + directoryName, directoryName, (err, station) => {
-                        module.stationsList.push(station);
+
+                    fs.readdir(fsRoot + "/" + directoryName, (err, files) => {
+                        assert.ifError(err);
+
+                        createStation(files, directoryName, (err, station) => {
+                            module.stationsList.push(station);
+                        });
                     });
                 });
             });
         },
+        // impure
         createPlaylist: (station) => {
             assert(station);
-            station.playlist = station.songs.slice();
+            station.playlist = station.media.slice();
             shuffle(station.playlist);
         },
         next: (station) => {
@@ -104,7 +107,7 @@ var stations = function(root) {
                 module.createPlaylist(station);
             }
 
-            // move the first song in the playlist to the playing slot
+            // move the first media file in the playlist to the playing slot
             station.playing = station.playlist.shift();
             station.currentTime = 0;
         },

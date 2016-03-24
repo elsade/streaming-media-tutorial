@@ -32,7 +32,6 @@ app.use(bodyParser.json());
 var router = express.Router();
 
 // TODO-AG: use the APIs below for station retrieval instead of a socket message.
-
 router.use(function(req, res, next) {
     "use strict";
     next();
@@ -77,7 +76,7 @@ stations.create();
 var stationUtils = (function () {
     "use strict";
 
-    var module = {
+    var context = {
         sendPlay: (socket, station, mediaFilePath, startTime) => {
 
             // fetch all information we can get about this file
@@ -122,7 +121,7 @@ var stationUtils = (function () {
         },
         joinStation: (socket, station) => {
             // leave previous station if we need to
-            module.leaveStation(socket, station);
+            context.leaveStation(socket, station);
 
             // join the channel associated with that station
             socket.join(station.name);
@@ -131,22 +130,28 @@ var stationUtils = (function () {
             // check if the baton has been assigned
             var batonHolder = stations.getBatonHolder(station);
             if(!batonHolder) {
+                let batonInfo = {
+                    baton: true
+                };
                 stations.assignBatonHolder(station, userStore.findUserById(socket.id));
 
-                socket.emit("giveBaton", { baton: true });
+                util.log("<---out--- 'giveBaton' " + util.inspect(batonInfo));
+                socket.emit("giveBaton", batonInfo);
             }
 
             // send the joined notification
 
             var notificationMsg = socket.username + " has joined the channel.";
-
-            socket.broadcast.to(socket.activeStationName).emit("notification", {
+            let notificationInfo = {
                 msg: notificationMsg
-            });
+            };
+
+            util.log("<---broadcast--- 'notification' " + util.inspect(notificationInfo));
+            socket.broadcast.to(socket.activeStationName).emit("notification", notificationInfo);
         }
     };
 
-    return module;
+    return context;
 }());
 
 io.on('connection', (socket) => {
@@ -182,6 +187,8 @@ io.on('connection', (socket) => {
         stations.play(selectedStation);
         assert(selectedStation.playing);
 
+        
+        
         filePath = selectedStation.playing.path;
 
         stationUtils.joinStation(socket, selectedStation);
@@ -204,7 +211,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on("reportProgress", (progressInfo) => {
-        //console.log("reportProgress " + progressInfo.progress);
+        //util.log("---in---> 'reportProgress' " + util.inspect(progressInfo)); // this is spam-y
 
         if(socket.activeStationName) {
             var selectedStation = stations.getStationByName(socket.activeStationName);
@@ -215,32 +222,36 @@ io.on('connection', (socket) => {
     });
 
     socket.on("changeProgress", (progressInfo) => {
+        util.log("---in---> 'changeProgress' " + util.inspect(progressInfo));
         if(socket.activeStationName) {
             var selectedStation = stations.getStationByName(socket.activeStationName);
             assert(selectedStation);
 
             stations.updateTime(selectedStation, progressInfo.progress);
 
+            util.log("<---broadcast--- 'notifyChangeProgress' " + util.inspect(progressInfo));
             socket.broadcast.to(socket.activeStationName).emit("notifyChangeProgress", progressInfo);
         }
     });
 
     socket.on("command", (commandInfo) => {
-        util.log("command " + commandInfo);
+        util.log("---in---> 'command' " + util.inspect(commandInfo));
 
         assert(socket.activeStationName);
         if(socket.activeStationName) {
             //var selectedStation = stationUtils.getStationByName(socket.activeStationName);
+            util.log("<---broadcast--- 'notifyCommand' " + util.inspect(commandInfo));
             socket.broadcast.to(socket.activeStationName).emit("notifyCommand", commandInfo);
         }
     });
 
     socket.on("sendChat", (chatInfo) => {
-        util.log(chatInfo);
+        util.log("---in---> 'sendChat' " + util.inspect(chatInfo));
 
         assert(chatInfo.username);
         assert(chatInfo.station);
 
+        util.log("<---broadcast--- 'receiveChat' " + util.inspect(chatInfo));
         socket.broadcast.to(chatInfo.station).emit("receiveChat", chatInfo);
     });
 
@@ -249,7 +260,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('disconnect', () => {
-        console.log('connection dropped');
+        util.log('connection dropped');
 
         if(socket.activeStationName) {
             var selectedStation = stations.getStationByName(socket.activeStationName);

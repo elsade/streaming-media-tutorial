@@ -55,9 +55,6 @@ var mediaUtils = (root) => {
             //mediaInfo.picture = tag.tags.picture;
         },
         determineFiletype: (filePath, mediaInfo, callback) => {
-            assert(filePath);
-            assert(mediaInfo);
-            assert(callback);
             return readChunk(filePath, 0, requireChunkSize, (err, chunk) => {
 
                 if(err) {
@@ -104,13 +101,17 @@ var mediaUtils = (root) => {
                 ext: path.basename(filePath).split('.')[1]
             };
 
+            // get the mime type and extension
             module.determineFiletype(fullPath, mediaData, (err, mediaInfo, fileType) => {
                 if(err) {
                     return callback(err, mediaInfo);
                 }
 
-                if(module.isMp3(mediaData.mime) || module.isMp4(mediaData.mime)) {
+                // if the files have id3 tags
+                if(module.isMp3(mediaData.mime) ||
+                    module.isMp4(mediaData.mime)) {
 
+                    // read the tags
                     module.readMediaTags(fullPath, mediaData, (err, mediaInfo, tag) => {
                         if(err) {
                             return callback(err, mediaInfo);
@@ -118,7 +119,12 @@ var mediaUtils = (root) => {
 
                         module.setMediaInfoFromId3Tag(mediaInfo, tag);
 
-                        if(!mediaInfo.picture && mediaInfo.artist && mediaInfo.album) {
+                        // if we alrady have cover art, we can look it up using the artist and album
+                        if(!mediaInfo.picture &&
+                            mediaInfo.artist &&
+                            mediaInfo.album) {
+
+                            // retrieve the cover art using the API
                             return coverArt(mediaInfo.artist.trim(), mediaInfo.album.trim(), "large", (err, url)=> {
                                 if(err) {
                                     console.log("cover art error: " + util.inspect(err));

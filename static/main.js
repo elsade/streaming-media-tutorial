@@ -43,6 +43,7 @@ var login = (function () {
             username = $name.val().trim();
 
             if(username) {
+                console.log("<--out-- 'login'");
                 socket.emit("login", {
                     username: username
                 });
@@ -89,11 +90,12 @@ var stationsMenu = (function () {
         onStationClick: function onStationClick(stationName) {
             currentStationName = stationName;
 
+            console.log("<--out-- 'playStation'");
             socket.emit("playStation", {
                 name: stationName
             });
 
-            $("#page-header").hide();
+            //$("#page-header").html("Current Station: '" + stationName + "'");
 
             chat.show();
 
@@ -152,9 +154,11 @@ var player = (function () {
             progress.val(newValue);
         },
         reportProgressToServer: function (progressInfo) {
+            console.log("<--out-- 'reportProgress'");
             socket.emit("reportProgress", progressInfo);
         },
         changeProgressOnServer: function (progressInfo) {
+            console.log("<--out-- 'changeProgress'");
             socket.emit("changeProgress", progressInfo);
         },
         overrideProgress: function (newValue) {
@@ -241,7 +245,7 @@ var player = (function () {
             $("#play-pause-icon").text("play_arrow");
         },
         next: function () {
-            console.log("Sending next to server.");
+            console.log("<--out-- 'next'");
             socket.emit("next", { name: currentStationName});
         },
         nextButtonClick: function () {
@@ -652,7 +656,7 @@ var audioInterface = (function AudioInterface() {
                 });
 
                 context.audio.addEventListener("canplay", function () {
-                    console.log("audio 'canplay'");
+                    //console.log("audio 'canplay'");
                     if(context.startTime > 0) {
                         player.overrideProgress(context.startTime);
                         context.startTime = 0;
@@ -748,7 +752,7 @@ var videoInterface = (function AudioInterface() {
                 });
 
                 context.video.addEventListener("canplay", function () {
-                    console.log("video 'canplay'");
+                    //console.log("video 'canplay'");
                     if(context.startTime > 0) {
                         player.overrideProgress(context.startTime);
                         context.startTime = 0;

@@ -69,8 +69,9 @@ body {
  */
 
 .main {
-  padding: 20px;
+  padding: 0;
 }
+
 @media (min-width: 768px) {
   .main {
     padding-right: 40px;
@@ -87,14 +88,14 @@ body {
  */
 
 .placeholders {
-  margin-bottom: 30px;
+  margin-bottom: 10px;
   text-align: center;
 }
 .placeholders h4 {
   margin-bottom: 0;
 }
 .placeholder {
-  margin-bottom: 20px;
+  margin-bottom: 10px;
 }
 .placeholder img {
   display: inline-block;
@@ -139,7 +140,7 @@ body {
 .panel-body
 {
   overflow-y: scroll;
-  height: 250px;
+  height: 150px;
 }
 
 ::-webkit-scrollbar-track
