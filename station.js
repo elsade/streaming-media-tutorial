@@ -72,25 +72,6 @@ var stations = function(root) {
     var module = {
         stationsList: [],
         /**
-         * Create a station object form a media list
-         *
-         * Pure: media list [] -> station
-         *
-         * @param name
-         * @param media
-         * @returns {{name: *, media: *, currentTime: number, playing: null, batonHolder: null}}
-         * @constructor
-         */
-        Station: function Station (name, media) {
-            return {
-                name: name,
-                media: media,
-                currentTime: 0,
-                playing: null,
-                batonHolder: null
-            };
-        },
-        /**
          * Create a station from a file list.
          *
          * Pure: file list [] -> station []

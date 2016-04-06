@@ -18,6 +18,7 @@ var moduleName = (root) => {
 
     }
 
+    //noinspection UnnecessaryLocalVariableJS
     var context = {
         // public function
         foo: () => {
