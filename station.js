@@ -2,32 +2,7 @@ var fs = require("fs");
 var util = require("util");
 var assert = require("assert");
 
-/**
- * Fisher-Yates Shuffle
- *
- * https://bost.ocks.org/mike/shuffle/
- *
- * @param array
- * @returns {*}
- */
-function shuffle(array) {
-    "use strict";
-    var m = array.length, t, i;
-
-    // While there remain elements to shuffle…
-    while (m) {
-
-        // Pick a remaining element…
-        i = Math.floor(Math.random() * m--);
-
-        // And swap it with the current element.
-        t = array[m];
-        array[m] = array[i];
-        array[i] = t;
-    }
-
-    return array;
-}
+var shuffle = require('fisher-yates');  // randomize an array
 
 
 var stations = function(root) {
@@ -39,45 +14,113 @@ var stations = function(root) {
     // used on the server side
     var fsRoot = staticRoot + stationRoot;
 
-    // pure
-    function Station (name, media) {
-        return {
-            name: name,
-            media: media,
-            currentTime: 0,
-            playing: null,
-            batonHolder: null
-        };
+    class Station {
+        constructor (name, media) {
+            this.name = name;
+            this.media = media;
+            this.currentTime = 0;
+            this.playing = null;
+            this.batonHolder = null;
+        }
+
+        createPlaylist() {
+            this.playlist = this.media.slice();
+            shuffle(this.playlist);
+        }
+
+        next() {
+            if(!this.playlist || this.playlist.length === 0) {
+                this.createPlaylist();
+            }
+
+            // move the first media file in the playlist to the playing slot
+            this.playing = this.playlist.shift();
+            this.currentTime = 0;
+        }
+
+        play() {
+
+            if(this.playing) {
+                console.log("station play(), '" + this.playing.name + "' is already playing.");
+            }
+            else {
+                this.next();
+            }
+
+            assert(this.playing);
+        }
+
+        updateTime (currentTime) {
+            assert(this.playing);
+
+            if (this.playing) {
+                //console.log("updateTime " + currentTime);
+                this.currentTime = currentTime;
+            }
+        }
+
+        set holder(user) {
+            util.log("assigning baton to " + user);
+            this.batonHolder = user;
+        }
+
+        get holder() {
+            return this.batonHolder;
+        }
     }
-
-    // pure
-    var createStation = (files, stationName, callback) => {
-        let media = files.filter((filename) => {
-                // exclude 'hidden' files
-                return filename[0] !== ".";
-            })
-            .map((current) => {
-                return {
-                    name: current,
-                    path: stationRoot + "/" + stationName + "/" + current,
-                    src: "/" + stationName + "/" + current
-                };
-            });
-
-        let newStation = Station(stationName, media);
-
-        return callback(null, newStation);
-    };
 
     var module = {
         stationsList: [],
-        // impure
-        create: () => {
-            fs.readdir(fsRoot, (err, files) => {
-                assert.ifError(err);
+        /**
+         * Create a station object form a media list
+         *
+         * Pure: media list [] -> station
+         *
+         * @param name
+         * @param media
+         * @returns {{name: *, media: *, currentTime: number, playing: null, batonHolder: null}}
+         * @constructor
+         */
+        Station: function Station (name, media) {
+            return {
+                name: name,
+                media: media,
+                currentTime: 0,
+                playing: null,
+                batonHolder: null
+            };
+        },
+        /**
+         * Create a station from a file list.
+         *
+         * Pure: file list [] -> station []
+         *
+         * @param files
+         * @param stationName
+         * @param callback
+         * @returns {*}
+         */
+        createStation: (files, stationName, callback) => {
+            let media = files.filter((filename) => {
+                    // exclude 'hidden' files
+                    return filename[0] !== ".";
+                })
+                .map((current) => {
+                    return {
+                        name: current,
+                        path: stationRoot + "/" + stationName + "/" + current,
+                        src: "/" + stationName + "/" + current
+                    };
+                });
 
-                files.filter((directoryName) => {
-                        // exclude 'hidden' directories
+            let newStation = new Station(stationName, media);
+
+            // return the newly created station
+            return callback(null, newStation);
+        },
+        createStationsFromDirectoryList: function (files) {
+            files.filter((directoryName) => {
+                    // exclude 'hidden' directories
                     return directoryName[0] !== ".";
                 })
                 .sort()
@@ -86,66 +129,23 @@ var stations = function(root) {
                     fs.readdir(fsRoot + "/" + directoryName, (err, files) => {
                         assert.ifError(err);
 
-                        createStation(files, directoryName, (err, station) => {
+                        module.createStation(files, directoryName, (err, station) => {
                             module.stationsList.push(station);
                         });
                     });
                 });
-            });
         },
         // impure
-        createPlaylist: (station) => {
-            assert(station);
-            station.playlist = station.media.slice();
-            shuffle(station.playlist);
-        },
-        next: (station) => {
-
-            assert(station);
-
-            if(!station.playlist || station.playlist.length === 0) {
-                module.createPlaylist(station);
-            }
-
-            // move the first media file in the playlist to the playing slot
-            station.playing = station.playlist.shift();
-            station.currentTime = 0;
-        },
-        play: (station) => {
-
-            assert(station);
-
-            if(station.playing) {
-                console.log("station play(), '" + station.playing.name + "' is already playing.");
-            }
-            else {
-                module.next(station);
-            }
-
-            assert(station.playing);
-        },
-        updateTime: (station, currentTime) => {
-            assert(station);
-            assert(station.playing);
-
-            if(station.playing) {
-                //console.log("updateTime " + currentTime);
-                station.currentTime = currentTime;
-            }
-        },
-        assignBatonHolder: (station, user) => {
-            assert(station);
-            if(station) {
-                util.log("assigning baton to " + user);
-                station.batonHolder = user;
-            }
-        },
-        getBatonHolder: (station) => {
-            assert(station);
-            return station.batonHolder;
+        createStationList: () => {
+            fs.readdir(fsRoot, (err, files) => {
+                assert.ifError(err);
+                module.createStationsFromDirectoryList(files);
+            });
         },
         getStationByName: (stationName) => {
-            return module.stationsList.find( (station) => station.name === stationName);
+            return module.stationsList.find( (station) => {
+                return station.name === stationName;
+            });
         }
     };
 
@@ -153,17 +153,3 @@ var stations = function(root) {
 };
 
 module.exports.stations = stations;
-
-
-
-/*
-
-var x = stations();
-x.create();
-
-setTimeout(()=> {
-    "use strict";
-    util.log(util.inspect(x, {depth: 5}));
-}, 1000);
-
-*/

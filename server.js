@@ -1,20 +1,20 @@
-var util = require("util");
-var assert = require("assert");
-var fs = require("fs");
+const util = require("util");
+const assert = require("assert");
+const fs = require("fs");
 
-var express = require('express');
-var app = express();
-var bodyParser = require('body-parser');
+const express = require('express');
+const app = express();
+const bodyParser = require('body-parser');
 
-var server = require('http').createServer(app);
-var io = require('socket.io')(server);
-var port = process.env.PORT || 3000;
+const server = require('http').createServer(app);
+const io = require('socket.io')(server);
+const port = process.env.PORT || 3000;
 
-var staticRoot = "./static";
+const staticRoot = "./static";
 
-var stations = require("./station").stations(staticRoot);
-var userStore = require("./userStore").userStore();
-var mediaUtils = require("./mediaUtils").mediaUtils(staticRoot);
+const stations = require("./station").stations(staticRoot);
+const userStore = require("./userStore").userStore();
+const mediaUtils = require("./mediaUtils").mediaUtils(staticRoot);
 
 app.use(express.static('static'));
 app.use(express.static('js'));
@@ -29,7 +29,7 @@ app.use("/assets/css", express.static('assets/css'));
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(bodyParser.json());
 
-var router = express.Router();
+const router = express.Router();
 
 // TODO-AG: use the APIs below for station retrieval instead of a socket message.
 router.use(function(req, res, next) {
@@ -52,11 +52,11 @@ router.route('/stations').get( function (req, res) {
 router.route('/stations/:name')
     .get( function (req, res) {
         "use strict";
-        var stationName = req.params.name;
+        let stationName = req.params.name;
 
         if(stationName) {
             console.log("GET " + req.originalUrl);
-            var selectedStation = stations.getStationByName(req.params.name);
+            let selectedStation = stations.getStationByName(req.params.name);
             res.json({
                 selectedStation
             });
@@ -71,12 +71,12 @@ app.use('/api', router);
 var sockets = {};
 
 // populate the stations and their media lists
-stations.create();
+stations.createStationList();
 
-var stationUtils = (function () {
+const stationUtils = (function () {
     "use strict";
 
-    var context = {
+    const context = {
         sendPlay: (socket, station, mediaFilePath, startTime) => {
 
             // fetch all information we can get about this file
@@ -96,19 +96,25 @@ var stationUtils = (function () {
         leaveStation: (socket) => {
             if(socket.activeStationName) {
 
-                // check if the use was the baton holder; if so, assign a new one
-                var batonHolder = stations.getBatonHolder(socket.activeStationName);
-                if(batonHolder) {
-                    if(batonHolder.socketId === socket.id) {
-                        var newBatonHolder = userStore.userList[0];
-                        stations.assignBatonHolder(socket.activeStationName, newBatonHolder);
-                        sockets[newBatonHolder.socketId].emit("giveBaton", { baton: true });
+                let station = stations.getStationByName(socket.activeStationName);
+
+                // TODO::AG-this logic should be moved to the station
+                if(station) {
+                    let batonHolder = station.holder;
+                    if(batonHolder) {
+                        // check if the user who is leaving was the baton holder; if so, assign a new one
+                        if(batonHolder.socketId === socket.id) {
+
+                            // the next user in the list should be assigned
+                            let newBatonHolder = userStore.userList[0];
+                            station.holder = newBatonHolder;
+                            sockets[newBatonHolder.socketId].emit("giveBaton", { baton: true });
+                        }
                     }
                 }
 
-
                 // notify other that user has left
-                var notificationMsg = socket.username + " has left the channel.";
+                let notificationMsg = socket.username + " has left the channel.";
 
                 socket.broadcast.to(socket.activeStationName).emit("notification", {
                     msg: notificationMsg
@@ -121,27 +127,30 @@ var stationUtils = (function () {
         },
         joinStation: (socket, station) => {
             // leave previous station if we need to
-            context.leaveStation(socket, station);
+            context.leaveStation(socket);
 
             // join the channel associated with that station
             socket.join(station.name);
             socket.activeStationName = station.name;
 
-            // check if the baton has been assigned
-            var batonHolder = stations.getBatonHolder(station);
-            if(!batonHolder) {
-                let batonInfo = {
-                    baton: true
-                };
-                stations.assignBatonHolder(station, userStore.findUserById(socket.id));
+            // TODO::AG-This should be moved to the station
+            if(station) {
+                // check if the baton has been assigned
+                let batonHolder = station.holder;
+                if(!batonHolder) {
+                    let batonInfo = {
+                        baton: true
+                    };
 
-                util.log("<---out--- 'giveBaton' " + util.inspect(batonInfo));
-                socket.emit("giveBaton", batonInfo);
+                    station.holder = userStore.findUserById(socket.id);
+
+                    util.log("<---out--- 'giveBaton' " + util.inspect(batonInfo));
+                    socket.emit("giveBaton", batonInfo);
+                }
             }
 
             // send the joined notification
-
-            var notificationMsg = socket.username + " has joined the channel.";
+            let notificationMsg = socket.username + " has joined the channel.";
             let notificationInfo = {
                 msg: notificationMsg
             };
@@ -162,7 +171,7 @@ io.on('connection', (socket) => {
     sockets[socket.id] = socket;
 
     socket.on("login", (loginInfo) => {
-        var response;
+        let response;
         util.log("---in---> 'login' " + util.inspect(loginInfo));
 
         response = {
@@ -171,7 +180,7 @@ io.on('connection', (socket) => {
 
         socket.username = loginInfo.username;
 
-        var user = userStore.CreateUser(socket.id, loginInfo.username);
+        let user = userStore.CreateUser(socket.id, loginInfo.username);
         userStore.addUser(user);
 
         util.log("<---out--- 'stations' " + util.inspect(response));
@@ -180,54 +189,50 @@ io.on('connection', (socket) => {
 
     socket.on("playStation", (playInfo) => {
         util.log("---in---> 'playStation' " + util.inspect(playInfo));
-        var filePath;
-        var selectedStation = stations.getStationByName(playInfo.name);
-        assert(selectedStation);
+        let filePath;
+        let station = stations.getStationByName(playInfo.name);
+        assert(station);
 
-        stations.play(selectedStation);
-        assert(selectedStation.playing);
+        station.play();
+        assert(station.playing);
+        filePath = station.playing.path;
 
-        
-        
-        filePath = selectedStation.playing.path;
-
-        stationUtils.joinStation(socket, selectedStation);
-        stationUtils.sendPlay(socket, selectedStation, filePath, selectedStation.currentTime);
+        stationUtils.joinStation(socket, station);
+        stationUtils.sendPlay(socket, station, filePath, station.currentTime);
     });
 
     socket.on("next", (nextInfo) => {
         util.log("---in---> 'next' " + util.inspect(nextInfo));
-        var filePath;
+        let filePath;
+        let station = stations.getStationByName(nextInfo.name);
+        assert(station);
 
-        var selectedStation = stations.getStationByName(nextInfo.name);
-        assert(selectedStation);
+        station.next();
+        assert(station.playing);
 
-        stations.next(selectedStation);
-        assert(selectedStation.playing);
+        filePath = station.playing.path;
 
-        filePath = selectedStation.playing.path;
-        assert(selectedStation.playing);
-        stationUtils.sendPlay(socket, selectedStation, filePath, 0);
+        stationUtils.sendPlay(socket, station, filePath, 0);
     });
 
     socket.on("reportProgress", (progressInfo) => {
         //util.log("---in---> 'reportProgress' " + util.inspect(progressInfo)); // this is spam-y
 
         if(socket.activeStationName) {
-            var selectedStation = stations.getStationByName(socket.activeStationName);
-            assert(selectedStation);
+            let station = stations.getStationByName(socket.activeStationName);
+            assert(station);
 
-            stations.updateTime(selectedStation, progressInfo.progress);
+            station.updateTime(progressInfo.progress);
         }
     });
 
     socket.on("changeProgress", (progressInfo) => {
         util.log("---in---> 'changeProgress' " + util.inspect(progressInfo));
         if(socket.activeStationName) {
-            var selectedStation = stations.getStationByName(socket.activeStationName);
-            assert(selectedStation);
+            let station = stations.getStationByName(socket.activeStationName);
+            assert(station);
 
-            stations.updateTime(selectedStation, progressInfo.progress);
+            station.updateTime(progressInfo.progress);
 
             util.log("<---broadcast--- 'notifyChangeProgress' " + util.inspect(progressInfo));
             socket.broadcast.to(socket.activeStationName).emit("notifyChangeProgress", progressInfo);
@@ -239,7 +244,6 @@ io.on('connection', (socket) => {
 
         assert(socket.activeStationName);
         if(socket.activeStationName) {
-            //var selectedStation = stationUtils.getStationByName(socket.activeStationName);
             util.log("<---broadcast--- 'notifyCommand' " + util.inspect(commandInfo));
             socket.broadcast.to(socket.activeStationName).emit("notifyCommand", commandInfo);
         }
@@ -263,11 +267,11 @@ io.on('connection', (socket) => {
         util.log('connection dropped');
 
         if(socket.activeStationName) {
-            var selectedStation = stations.getStationByName(socket.activeStationName);
-            assert(selectedStation);
+            let station = stations.getStationByName(socket.activeStationName);
+            assert(station);
 
             // leave the station
-            stationUtils.leaveStation(socket, selectedStation);
+            stationUtils.leaveStation(socket, station);
         }
 
         userStore.removeUserById(socket.id);
