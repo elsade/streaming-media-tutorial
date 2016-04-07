@@ -154,7 +154,7 @@ var player = (function () {
             progress.val(newValue);
         },
         reportProgressToServer: function (progressInfo) {
-            console.log("<--out-- 'reportProgress'");
+            //console.log("<--out-- 'reportProgress'");
             socket.emit("reportProgress", progressInfo);
         },
         changeProgressOnServer: function (progressInfo) {

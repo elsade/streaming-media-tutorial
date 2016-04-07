@@ -1,9 +1,7 @@
 var fs = require("fs");
 var util = require("util");
 var assert = require("assert");
-
-var shuffle = require('fisher-yates');  // randomize an array
-
+var _ = require("underscore");
 
 var stations = function(root) {
     "use strict";
@@ -24,8 +22,7 @@ var stations = function(root) {
         }
 
         createPlaylist() {
-            this.playlist = this.media.slice();
-            shuffle(this.playlist);
+            this.playlist = _.shuffle(this.media.slice());
         }
 
         next() {
@@ -99,30 +96,58 @@ var stations = function(root) {
             // return the newly created station
             return callback(null, newStation);
         },
-        createStationsFromDirectoryList: function (files) {
+        /**
+         * Return a function that will be called while iterating over the directory during
+         * station creation.
+         *
+         * Pure: string -> function
+         *
+         * @returns {Function}
+         */
+        overEachDirectory: () => {
+            return function(directoryName) {
+                fs.readdir(fsRoot + "/" + directoryName, (err, files) => {
+                    assert.ifError(err);
+
+                    module.createStation(files, directoryName, (err, station) => {
+                        module.stationsList.push(station);
+                    });
+                });
+            };
+        },
+        /**
+         * Iterate over the files in a directory and call the provided function on each subdirectory
+         *
+         * @param files - A
+         * @param overEach - A function to be called over each subdirectory
+         */
+        createStationsFromDirectoryList: function (files, overEach) {
             files.filter((directoryName) => {
                     // exclude 'hidden' directories
                     return directoryName[0] !== ".";
                 })
                 .sort()
                 .map((directoryName) => {
-
-                    fs.readdir(fsRoot + "/" + directoryName, (err, files) => {
-                        assert.ifError(err);
-
-                        module.createStation(files, directoryName, (err, station) => {
-                            module.stationsList.push(station);
-                        });
-                    });
+                    overEach(directoryName);
                 });
         },
-        // impure
+        /**
+         * Create the list of stations from the content of the root directory.
+         *
+         * impure
+         */
         createStationList: () => {
             fs.readdir(fsRoot, (err, files) => {
                 assert.ifError(err);
-                module.createStationsFromDirectoryList(files);
+                module.createStationsFromDirectoryList(files, module.overEachDirectory());
             });
         },
+        /**
+         * Get a station from the station list by name
+         *
+         * @param stationName
+         * @returns {T}
+         */
         getStationByName: (stationName) => {
             return module.stationsList.find( (station) => {
                 return station.name === stationName;

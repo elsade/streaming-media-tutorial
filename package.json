@@ -11,11 +11,11 @@
   "dependencies": {
     "cover-art": "^1.0.5",
     "express": "^4.13.4",
-    "fisher-yates": "^1.0.3",
     "id3js": "^1.1.3",
     "restify": "^4.0.4",
     "socket.io": "^1.4.5",
     "socket.io-stream": "^0.9.0",
+    "underscore": "^1.8.3",
     "xml2js": "^0.4.16"
   },
   "devDependencies": {
