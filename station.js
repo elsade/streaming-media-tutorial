@@ -57,7 +57,7 @@ var stations = function(root) {
         }
 
         set holder(user) {
-            util.log("assigning baton to " + user);
+            util.log("assigning baton to " + util.inspect(user));
             this.batonHolder = user;
         }
 
